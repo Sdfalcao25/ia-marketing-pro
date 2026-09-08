@@ -1,0 +1,81 @@
+name: Build ANTI GOLPE AI APK
+
+on:
+  push:
+    branches: [anti-golpe-ai]
+    paths:
+      - 'anti-golpe-build/**'
+      - '.github/workflows/anti-golpe-apk.yml'
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Reconstruct source archive
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat anti-golpe-build/payload/part00 \
+              anti-golpe-build/payload/part01 \
+              anti-golpe-build/payload/part02 \
+              anti-golpe-build/payload/part03 \
+              anti-golpe-build/payload/part04 \
+              anti-golpe-build/payload/part05 \
+              anti-golpe-build/payload/part06 \
+              anti-golpe-build/payload/part07 \
+              anti-golpe-build/payload/part08 > /tmp/anti_golpe_ai_source.zip.b64
+          base64 -d /tmp/anti_golpe_ai_source.zip.b64 > /tmp/anti_golpe_ai_source.zip
+          echo 'f80c469f23b96435805d53dfd87472d73c04c0cea27700d35463ab690d2b3e2a  /tmp/anti_golpe_ai_source.zip' | sha256sum -c -
+          mkdir -p /tmp/anti-source
+          unzip -q /tmp/anti_golpe_ai_source.zip -d /tmp/anti-source
+          cp -a /tmp/anti-source/anti_golpe_ai/. "$GITHUB_WORKSPACE/"
+
+      - name: Set up Flutter stable
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android project
+        shell: bash
+        run: bash tool/bootstrap_android.sh
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Flutter analyze
+        continue-on-error: true
+        run: flutter analyze 2>&1 | tee flutter-analyze.log
+
+      - name: Flutter tests
+        continue-on-error: true
+        run: flutter test 2>&1 | tee flutter-test.log
+
+      - name: Build debug APK
+        run: flutter build apk --debug
+
+      - name: Validate APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          file build/app/outputs/flutter-apk/app-debug.apk
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee apk-sha256.txt
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai.apk
+          cp apk-sha256.txt dist/APK_SHA256.txt
+          cp flutter-analyze.log dist/flutter-analyze.log 2>/dev/null || true
+          cp flutter-test.log dist/flutter-test.log 2>/dev/null || true
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: anti-golpe-ai-apk
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
