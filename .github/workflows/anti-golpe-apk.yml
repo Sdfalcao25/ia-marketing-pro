@@ -6,6 +6,8 @@ on:
     paths:
       - 'anti-golpe-build/**'
       - '.github/workflows/anti-golpe-apk.yml'
+  pull_request:
+    branches: [main]
   workflow_dispatch:
 
 jobs:
