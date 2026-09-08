@@ -19,19 +19,9 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          cat > /tmp/parts.sha256 <<'EOF'
-          0bc29ec494aa87a78acfaddf49bd7837eda9d7e616483e02956fbd3af235dc2d  anti-golpe-build/payload/part00
-          9eb6e6243b64d04058b678e9704a1546d14f4ae2de45e51aec8c51d83a6f5482  anti-golpe-build/payload/part01
-          86ce1871639d0fae3c8d70d7dd9fc2c6d08ae19d8c020a2c2f11a1a72cfa44d7  anti-golpe-build/payload/part02
-          8709dd77d5f88bdd7790dbecc25c87a6f94815f45faff5d45ba2c316f5ed39d5  anti-golpe-build/payload/part03
-          e0321988620fbcc12c2091043be262f7523bc61f30a03d74ff1eb66a86d996bd  anti-golpe-build/payload/part04
-          0644ae1b26c21ce1e7a60c584898ccd6803cc024f30064cfb7bd65d000d41ecc  anti-golpe-build/payload/part05
-          fe89c47af7b7f50d702758f07e4c70bb0d0984ef17f327ef7fb22a71465007f1  anti-golpe-build/payload/part06
-          2c1bdc8362b7101e4222badc0f7e7844cd73ee31fb548e1b47e1e1abea8c1d59  anti-golpe-build/payload/part07
-          b864d1d02c3b0cecd6d448e8d5de003732d1084730aa9169a078326fbb7b06c7  anti-golpe-build/payload/part08
-          EOF
-          sha256sum -c /tmp/parts.sha256 || true
-          cat anti-golpe-build/payload/part00 anti-golpe-build/payload/part01 anti-golpe-build/payload/part02 anti-golpe-build/payload/part03 anti-golpe-build/payload/part04 anti-golpe-build/payload/part05 anti-golpe-build/payload/part06 anti-golpe-build/payload/part07 anti-golpe-build/payload/part08 > /tmp/anti_golpe_ai_source.zip.b64
+          echo '2bd724b10f3b1523d4e1bb1c8de670f54d85b3e93dbe878a77f81df1fc8cbd41  anti-golpe-build/payload/part00a' | sha256sum -c -
+          echo '8dc82f13aa33bcfa5629a1f3690451462d548daf9c15cb90cb3627831b8405a9  anti-golpe-build/payload/part00b' | sha256sum -c -
+          cat anti-golpe-build/payload/part00a anti-golpe-build/payload/part00b anti-golpe-build/payload/part01 anti-golpe-build/payload/part02 anti-golpe-build/payload/part03 anti-golpe-build/payload/part04 anti-golpe-build/payload/part05 anti-golpe-build/payload/part06 anti-golpe-build/payload/part07 anti-golpe-build/payload/part08 > /tmp/anti_golpe_ai_source.zip.b64
           base64 -d /tmp/anti_golpe_ai_source.zip.b64 > /tmp/anti_golpe_ai_source.zip
           echo 'f80c469f23b96435805d53dfd87472d73c04c0cea27700d35463ab690d2b3e2a  /tmp/anti_golpe_ai_source.zip' | sha256sum -c -
           mkdir -p /tmp/anti-source
@@ -45,7 +35,6 @@ jobs:
           cache: true
 
       - name: Generate Android project
-        shell: bash
         run: bash tool/bootstrap_android.sh
 
       - name: Resolve dependencies
