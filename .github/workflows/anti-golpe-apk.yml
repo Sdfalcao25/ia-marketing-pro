@@ -28,6 +28,31 @@ jobs:
           unzip -q /tmp/anti_golpe_ai_source.zip -d /tmp/anti-source
           cp -a /tmp/anti-source/anti_golpe_ai/. "$GITHUB_WORKSPACE/"
 
+      - name: Apply verified compile fixes
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('lib/features/analysis/analysis_form_screen.dart')
+          s=p.read_text().replace("'Ex.: R$ 350,00'", "'Ex.: R\\$ 350,00'").replace("'Ex.: R$ 199,00'", "'Ex.: R\\$ 199,00'")
+          p.write_text(s)
+          p=Path('lib/features/analysis/local_ai_analysis_service.dart')
+          s=p.read_text().replace("final confidence = (55 + evidence).clamp(55, 92);", "final confidence = (55 + evidence).clamp(55, 92).toInt();")
+          p.write_text(s)
+          for f in ['lib/features/analysis/result_screen.dart','lib/features/history/history_screen.dart']:
+              p=Path(f); s=p.read_text(); marker="import '../../core/models/analysis.dart';"
+              if "../../core/models/risk_level.dart" not in s:
+                  s=s.replace(marker, marker+"\nimport '../../core/models/risk_level.dart';")
+              p.write_text(s)
+          p=Path('lib/features/analysis/result_screen.dart')
+          p.write_text(p.read_text().replace('const Color(0x223FFFFFF)', 'const Color(0x223FFFFF)'))
+          p=Path('test/widget_test.dart')
+          p.write_text(p.read_text().replace("import 'package:flutter/material.dart';\n", ''))
+          p=Path('lib/features/account/account_screen.dart')
+          s=p.read_text().replace('if(ctx.mounted)ScaffoldMessenger.of(context).showSnackBar', 'if(ctx.mounted)ScaffoldMessenger.of(ctx).showSnackBar')
+          p.write_text(s)
+          PY
+
       - name: Set up Flutter stable
         uses: subosito/flutter-action@v2
         with:
@@ -41,11 +66,9 @@ jobs:
         run: flutter pub get
 
       - name: Flutter analyze
-        continue-on-error: true
-        run: flutter analyze 2>&1 | tee flutter-analyze.log
+        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee flutter-analyze.log
 
       - name: Flutter tests
-        continue-on-error: true
         run: flutter test 2>&1 | tee flutter-test.log
 
       - name: Build debug APK
@@ -57,12 +80,13 @@ jobs:
           set -euo pipefail
           test -s build/app/outputs/flutter-apk/app-debug.apk
           file build/app/outputs/flutter-apk/app-debug.apk
+          unzip -t build/app/outputs/flutter-apk/app-debug.apk >/dev/null
           sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee apk-sha256.txt
           mkdir -p dist
           cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai.apk
           cp apk-sha256.txt dist/APK_SHA256.txt
-          cp flutter-analyze.log dist/flutter-analyze.log 2>/dev/null || true
-          cp flutter-test.log dist/flutter-test.log 2>/dev/null || true
+          cp flutter-analyze.log dist/flutter-analyze.log
+          cp flutter-test.log dist/flutter-test.log
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
