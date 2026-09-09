@@ -63,13 +63,19 @@
   const previousLocal=window.localAnalyze;
   if(typeof previousLocal==='function')window.localAnalyze=function(raw,type){const base=previousLocal(raw,type);const candidate=type==='url'?(String(raw).match(/https?:\/\/[^\s]+/i)?.[0]||String(raw).split(/\s+/)[0]):raw;return harden(base,candidate,raw,type)};
 
+  const previousRender=window.renderResult;
+  function intelligencePanel(r){
+    if(!r||r.type!=='url')return;const page=document.querySelector('#content .page');if(!page||page.querySelector('.url-intel-card'))return;const sig=r.signals||{};const host=sig.hostname||'';const age=Number(sig.domain_age_days);const ageText=Number.isFinite(age)?`${age} dias`:'Não confirmado';const rep=sig.verified_threat_intel?'Ameaça confirmada em inteligência externa':sig.web_risk_no_match?'Sem correspondência na fonte externa consultada':sig.web_risk_unavailable?'Fonte externa indisponível; análise conservadora':'Reputação baseada em domínio + sinais técnicos';const status=sig.http_status?`HTTP ${sig.http_status}`:'Não confirmado';const card=document.createElement('div');card.className='card url-intel-card';card.innerHTML=`<h3>Inteligência do endereço</h3><div class="status-line"><span>Domínio</span><b>${esc(host||'Não identificado')}</b></div><div class="status-line"><span>Idade do domínio</span><b>${esc(ageText)}</b></div><div class="status-line"><span>Reputação</span><b>${esc(rep)}</b></div><div class="status-line"><span>Resposta técnica</span><b>${esc(status)}</b></div><p class="muted mini" style="margin:10px 0 0">HTTPS e resposta HTTP não provam que um site é legítimo. O SafeCheck cruza esses dados com idade do domínio, estrutura, contexto e sinais de engenharia social.</p>`;const actions=page.querySelector('.form-actions');if(actions)page.insertBefore(card,actions);else page.appendChild(card);
+  }
+  if(typeof previousRender==='function')window.renderResult=function(r){previousRender(r);intelligencePanel(r);const motor=[...document.querySelectorAll('.card.mini.muted')].find(x=>x.textContent.includes('Motor:'));if(motor)motor.innerHTML=motor.innerHTML.replace(/SafeCheck Server\s*2\.0/g,'SafeCheck Server 2.2')};
+
   window.submitAnalysis=async function(){
     if(busy)return;const type=$('analysisType').value;const text=$('analysisText').value.trim(),context=$('analysisContext').value.trim();if(!text&&!fileData){toast('Cole um conteúdo ou selecione um arquivo.');return}
     const s=await ensureSession();if(!s){toast('Sua sessão expirou. Entre novamente.');logout();return}
     const payload={type,context,fileName:fileData?.name||undefined,extractedText:fileData?.text||undefined};if(type==='url')payload.url=text;else payload.text=text;const combined=(text+' '+context+' '+(fileData?.text||'')).trim();
     setBusy('analyzeBtn',true,'Analisando domínio e sinais…');
-    try{const data=await jsonFetch(ANALYZE_URL,{method:'POST',headers:authHeaders(s.access_token),body:JSON.stringify(payload)},22000);const checked=harden(data,text,combined,type);lastReport={...checked,mode:'server',inputPreview:text||fileData?.name||'Arquivo',type};setOnline(true);renderResult(lastReport)}
-    catch(e){setOnline(false);const local=window.localAnalyze(combined,type);lastReport={...local,mode:'local',inputPreview:text||fileData?.name||'Arquivo',type,error:friendlyError(e)};renderResult(lastReport);toast('Servidor indisponível: exibindo análise local conservadora.')}
+    try{const data=await jsonFetch(ANALYZE_URL,{method:'POST',headers:authHeaders(s.access_token),body:JSON.stringify(payload)},22000);const checked=harden(data,text,combined,type);lastReport={...checked,mode:'server',inputPreview:text||fileData?.name||'Arquivo',type};setOnline(true);window.renderResult(lastReport)}
+    catch(e){setOnline(false);const local=window.localAnalyze(combined,type);lastReport={...local,mode:'local',inputPreview:text||fileData?.name||'Arquivo',type,error:friendlyError(e)};window.renderResult(lastReport);toast('Servidor indisponível: exibindo análise local conservadora.')}
     finally{busy=false}
   };
 
