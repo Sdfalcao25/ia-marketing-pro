@@ -15,7 +15,10 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Validate SafeCheck JavaScript
-        run: node --check safecheck-android/app/src/main/assets/app.js
+        run: |
+          node --check safecheck-android/app/src/main/assets/app.js
+          node --check safecheck-android/app/src/main/assets/risk-ui.js
+          grep -q 'risk-ui.js' safecheck-android/app/src/main/assets/index.html
       - name: Check SafeCheck backend health
         run: |
           curl --fail --silent --show-error --max-time 20 \
@@ -26,6 +29,7 @@ jobs:
           data=json.load(open('/tmp/safecheck-health.json'))
           assert data.get('ok') is True, data
           assert data.get('databaseConfigured') is True, data
+          assert data.get('aiConfigured') is True, data
           print('SafeCheck backend healthy; AI configured:', bool(data.get('aiConfigured')))
           PY
       - uses: actions/setup-java@v4
