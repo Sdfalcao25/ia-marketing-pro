@@ -30,32 +30,35 @@ jobs:
           rm -rf /tmp/safecheck_flutter
           mkdir -p /tmp/safecheck_flutter
           unzip -q /tmp/safecheck_flutter.zip -d /tmp/safecheck_flutter
+          test -f /tmp/safecheck_flutter/flutter_app/pubspec.yaml
           sha256sum /tmp/safecheck_flutter.zip
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
       - name: Flutter doctor
         run: flutter doctor -v
       - name: Pub get
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter pub get
       - name: Analyze
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter analyze
       - name: Tests
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter test
-      - name: Create Android scaffold
-        working-directory: /tmp/safecheck_flutter
+      - name: Create Android and web scaffold
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter create --platforms=android,web --org ai.safecheck --project-name safecheck_ai .
       - name: Re-run analyze after scaffold
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter analyze
       - name: Build APK
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter build apk --debug --dart-define=API_BASE_URL=https://api.example.invalid
       - name: Build web
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter build web --dart-define=API_BASE_URL=https://api.example.invalid
       - name: Hash artifacts
-        working-directory: /tmp/safecheck_flutter
+        working-directory: /tmp/safecheck_flutter/flutter_app
         run: |
           sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee build/app-debug.sha256
           tar -czf build/web-build.tar.gz -C build web
@@ -64,8 +67,8 @@ jobs:
         with:
           name: safecheck-flutter-part7
           path: |
-            /tmp/safecheck_flutter/build/app/outputs/flutter-apk/app-debug.apk
-            /tmp/safecheck_flutter/build/app-debug.sha256
-            /tmp/safecheck_flutter/build/web-build.tar.gz
-            /tmp/safecheck_flutter/build/web-build.sha256
+            /tmp/safecheck_flutter/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+            /tmp/safecheck_flutter/flutter_app/build/app-debug.sha256
+            /tmp/safecheck_flutter/flutter_app/build/web-build.tar.gz
+            /tmp/safecheck_flutter/flutter_app/build/web-build.sha256
           if-no-files-found: error
