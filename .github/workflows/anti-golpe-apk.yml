@@ -53,7 +53,13 @@ jobs:
           p=Path('test/widget_test.dart'); p.write_text(p.read_text().replace("expect(find.text('Histórico'), findsNothing);","expect(find.text('Histórico'), findsOneWidget);"))
           PY
 
-          cp anti-golpe-build/v3fixed/patch.zip /tmp/v3.zip
+          echo 'd8f9249b3e31f8eee733c7e9b5c19f8f99dfa069a4b69af8f839989d019fa255  anti-golpe-build/v3fixed/part00' | sha256sum -c -
+          echo 'e366149d4d3789581693d540718577817d9a0ee069fc38ffedf189e614e04a89  anti-golpe-build/v3fixed/part01' | sha256sum -c -
+          echo '0e1d36ff1818f9ae17227b8a466ff5140110df0677a6a8a9e41adf385d0bbd86  anti-golpe-build/v3fixed/part02' | sha256sum -c -
+          echo 'ce632652dbc9b0abdc371adfdfcf36adcf391d404c85cfb3856193a58bd57140  anti-golpe-build/v3fixed/part03' | sha256sum -c -
+          echo 'b50eedc7e9344c236c4dfc8163652097cff62cb4a99e62433cba7bb45f478a00  anti-golpe-build/v3fixed/part04' | sha256sum -c -
+          cat anti-golpe-build/v3fixed/part00 anti-golpe-build/v3fixed/part01 anti-golpe-build/v3fixed/part02 anti-golpe-build/v3fixed/part03 anti-golpe-build/v3fixed/part04 >/tmp/v3.b64
+          base64 -d /tmp/v3.b64 >/tmp/v3.zip
           echo '88ea37d2a95f30433689f4a9f5fefcc00e2a44b76031798aca80b2a4192e78b0  /tmp/v3.zip' | sha256sum -c -
           unzip -t /tmp/v3.zip >/dev/null
           unzip -oq /tmp/v3.zip -d .
