@@ -15,6 +15,10 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayOutputStream;
+import java.io.InputStream;
+import java.nio.charset.StandardCharsets;
+
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 702;
     private WebView webView;
@@ -30,7 +34,7 @@ public class MainActivity extends Activity {
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setAllowContentAccess(true);
-        settings.setAllowFileAccess(true);
+        settings.setAllowFileAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
@@ -42,12 +46,13 @@ public class MainActivity extends Activity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
                 Uri uri = request.getUrl();
+                if ("safecheck.local".equalsIgnoreCase(uri.getHost())) return false;
                 String scheme = uri.getScheme();
-                if ("file".equalsIgnoreCase(scheme)) return false;
                 if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
                     try {
                         startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                    } catch (Exception ignored) {}
+                    } catch (Exception ignored) {
+                    }
                     return true;
                 }
                 return true;
@@ -55,7 +60,27 @@ public class MainActivity extends Activity {
         });
         webView.addJavascriptInterface(new NativeBridge(), "SafeCheckNative");
         setContentView(webView);
-        webView.loadUrl("file:///android_asset/index.html");
+
+        String html = readAssetText("index.html");
+        if (html == null || html.isEmpty()) {
+            Toast.makeText(this, "Falha ao carregar a interface do aplicativo.", Toast.LENGTH_LONG).show();
+            return;
+        }
+        // Use an HTTPS base origin for the bundled UI. This keeps file:// access disabled
+        // and lets normal CORS rules protect requests to the remote backend.
+        webView.loadDataWithBaseURL("https://safecheck.local/", html, "text/html", "UTF-8", null);
+    }
+
+    private String readAssetText(String name) {
+        try (InputStream input = getAssets().open(name);
+             ByteArrayOutputStream output = new ByteArrayOutputStream()) {
+            byte[] buffer = new byte[8192];
+            int read;
+            while ((read = input.read(buffer)) != -1) output.write(buffer, 0, read);
+            return output.toString(StandardCharsets.UTF_8.name());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     public class NativeBridge {
@@ -99,7 +124,8 @@ public class MainActivity extends Activity {
         try {
             int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             getContentResolver().takePersistableUriPermission(uri, flags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Exception ignored) {}
+        } catch (Exception ignored) {
+        }
 
         String fileName = resolveName(uri);
         String mime = getContentResolver().getType(uri);
