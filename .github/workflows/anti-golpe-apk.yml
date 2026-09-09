@@ -67,7 +67,7 @@ jobs:
           test -s lib/core/services/site_research_service.dart
           test -s lib/features/learn/learn_screen.dart
 
-      - name: Apply v2 compile fix
+      - name: Apply v2 compile and test fixes
         shell: bash
         run: |
           set -euo pipefail
@@ -84,8 +84,17 @@ jobs:
           if not replaced:
               raise SystemExit('password-field regex line not found')
           p.write_text('\n'.join(lines) + '\n')
+
+          p = Path('test/widget_test.dart')
+          s = p.read_text()
+          old = "expect(find.text('Histórico'), findsNothing);"
+          new = "expect(find.text('Histórico'), findsOneWidget);"
+          if old not in s:
+              raise SystemExit('outdated Histórico expectation not found')
+          p.write_text(s.replace(old, new))
           PY
           grep -n "hasPasswordField = RegExp" lib/core/services/site_research_service.dart
+          grep -n "Histórico" test/widget_test.dart
 
       - name: Set up Flutter stable
         uses: subosito/flutter-action@v2
