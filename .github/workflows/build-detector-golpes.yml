@@ -1,9 +1,9 @@
-name: Build Detector de Golpes APK
+name: Build SafeCheck Cloud APK
 
 on:
   push:
     branches:
-      - build-detector-golpes-apk
+      - safecheck-cloud-v2
   workflow_dispatch:
 
 permissions:
@@ -38,6 +38,26 @@ jobs:
         with:
           gradle-version: '8.9'
 
+      - name: Verify Supabase Auth endpoint
+        shell: bash
+        run: |
+          curl --fail --silent --show-error \
+            -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' \
+            'https://pwlblezbjnumlmqevcgu.supabase.co/auth/v1/settings' > /tmp/safecheck-auth-settings.json
+          test -s /tmp/safecheck-auth-settings.json
+
+      - name: Verify protected analysis endpoint
+        shell: bash
+        run: |
+          code=$(curl --silent --output /tmp/safecheck-edge.txt --write-out '%{http_code}' \
+            -X POST \
+            -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' \
+            -H 'Content-Type: application/json' \
+            --data '{"type":"message","text":"teste"}' \
+            'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/safecheck-analyze')
+          echo "Protected endpoint returned HTTP $code without a user session"
+          test "$code" = "401"
+
       - name: Compile debug APK
         run: gradle :app:assembleDebug --stacktrace
 
@@ -45,11 +65,12 @@ jobs:
         run: |
           test -f app/build/outputs/apk/debug/app-debug.apk
           ls -lh app/build/outputs/apk/debug/app-debug.apk
+          $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: detector-de-golpes-1.1.0-apk
+          name: detector-de-golpes-2.0.0-cloud-apk
           path: detector-golpes-standalone/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
-          retention-days: 7
+          retention-days: 14
