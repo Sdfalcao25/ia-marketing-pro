@@ -67,6 +67,26 @@ jobs:
           test -s lib/core/services/site_research_service.dart
           test -s lib/features/learn/learn_screen.dart
 
+      - name: Apply v2 compile fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('lib/core/services/site_research_service.dart')
+          lines = p.read_text().splitlines()
+          replaced = False
+          for i, line in enumerate(lines):
+              if 'hasPasswordField = RegExp' in line:
+                  indent = line[:len(line) - len(line.lstrip())]
+                  lines[i] = indent + "hasPasswordField = RegExp(r'''type\\s*=\\s*['\"]password['\"]''', caseSensitive: false).hasMatch(body);"
+                  replaced = True
+          if not replaced:
+              raise SystemExit('password-field regex line not found')
+          p.write_text('\n'.join(lines) + '\n')
+          PY
+          grep -n "hasPasswordField = RegExp" lib/core/services/site_research_service.dart
+
       - name: Set up Flutter stable
         uses: subosito/flutter-action@v2
         with:
@@ -80,10 +100,16 @@ jobs:
         run: flutter pub get
 
       - name: Flutter analyze
-        run: flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee flutter-analyze.log
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze --no-fatal-infos --no-fatal-warnings 2>&1 | tee flutter-analyze.log
 
       - name: Flutter tests
-        run: flutter test 2>&1 | tee flutter-test.log
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee flutter-test.log
 
       - name: Build debug APK
         run: flutter build apk --debug
