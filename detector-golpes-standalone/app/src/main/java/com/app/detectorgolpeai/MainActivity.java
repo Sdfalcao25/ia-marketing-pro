@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.webkit.JavascriptInterface;
@@ -24,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 702;
-    private static final String APP_VERSION = "2.4.0";
+    private static final String APP_VERSION = "2.4.1";
     private static final int DARK_SYSTEM = 0xFF020B11;
     private WebView webView;
 
@@ -45,12 +46,15 @@ public class MainActivity extends Activity {
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setJavaScriptCanOpenWindowsAutomatically(false);
+        settings.setSupportMultipleWindows(false);
         settings.setDomStorageEnabled(true);
-        settings.setAllowContentAccess(true);
+        settings.setAllowContentAccess(false);
         settings.setAllowFileAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) settings.setSafeBrowsingEnabled(true);
         settings.setUserAgentString(settings.getUserAgentString() + " SafeCheckAI-Android/" + APP_VERSION);
 
         WebView.setWebContentsDebuggingEnabled(false);
@@ -107,6 +111,7 @@ public class MainActivity extends Activity {
         injectAsset("risk_patch.js");
         injectAsset("client_patch_230.js");
         injectAsset("freemium_patch_240.js");
+        injectAsset("audit_patch_241.js");
     }
 
     private void injectAsset(String name) {
