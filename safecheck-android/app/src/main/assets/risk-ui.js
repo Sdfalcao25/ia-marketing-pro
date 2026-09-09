@@ -145,9 +145,8 @@ function currentText() {
 function updateGuideActive(profile) {
   const guide = $('riskGuide');
   if (!guide) return;
-  guide.querySelectorAll('.risk-scale-item').forEach(el => el.classList.remove('active'));
   const selector = profile.key === 'critical' || profile.key === 'very-high' ? '.scale-critical' : profile.key === 'high' ? '.scale-high' : profile.key === 'moderate' ? '.scale-moderate' : profile.key === 'attention' ? '.scale-attention' : '.scale-low';
-  guide.querySelector(selector)?.classList.add('active');
+  guide.querySelectorAll('.risk-scale-item').forEach(el => el.classList.toggle('active', el.matches(selector)));
 }
 
 function applyRiskPresentation(forceCapture = false) {
@@ -171,26 +170,30 @@ function applyRiskPresentation(forceCapture = false) {
   const heuristic = inspectText(currentText());
   const displayedRisk = Math.max(baseRisk, heuristic.risk);
   const profile = riskProfile(displayedRisk);
+  const displayedText = String(displayedRisk);
 
   applying = true;
   try {
-    scoreEl.textContent = String(displayedRisk);
-    scoreEl.dataset.riskDisplayed = String(displayedRisk);
+    if (scoreEl.textContent !== displayedText) scoreEl.textContent = displayedText;
+    scoreEl.dataset.riskDisplayed = displayedText;
     scoreEl.setAttribute('aria-label', `${displayedRisk} de 100 de risco estimado de golpe`);
 
     const eyebrow = result.querySelector('.score-card .eyebrow');
-    if (eyebrow) eyebrow.textContent = 'RISCO DE GOLPE';
+    if (eyebrow && eyebrow.textContent !== 'RISCO DE GOLPE') eyebrow.textContent = 'RISCO DE GOLPE';
 
-    riskEl.textContent = profile.label;
-    riskEl.className = 'risk-badge';
+    if (riskEl.textContent !== profile.label) riskEl.textContent = profile.label;
+    if (riskEl.className !== 'risk-badge') riskEl.className = 'risk-badge';
     riskEl.style.removeProperty('color');
 
     result.style.setProperty('--risk-accent', profile.accent);
-    result.classList.remove('risk-stage-red','risk-stage-orange','risk-stage-amber','risk-stage-yellow','risk-stage-green');
-    result.classList.add('risk-stage-' + profile.tone);
+    const desiredStage = 'risk-stage-' + profile.tone;
+    if (!result.classList.contains(desiredStage)) {
+      result.classList.remove('risk-stage-red','risk-stage-orange','risk-stage-amber','risk-stage-yellow','risk-stage-green');
+      result.classList.add(desiredStage);
+    }
 
     const summary = $('summaryBanner');
-    if (summary) summary.textContent = profile.summary;
+    if (summary && summary.textContent !== profile.summary) summary.textContent = profile.summary;
 
     addUniqueListItems($('findings'), heuristic.findings);
     addUniqueFlags($('flags'), heuristic.flags);
@@ -299,7 +302,7 @@ const observer = new MutationObserver(() => {
     patchHistory();
   });
 });
-observer.observe(document.body, {subtree:true, childList:true, characterData:true, attributes:true, attributeFilter:['class']});
+observer.observe(document.body, {subtree:true, childList:true, characterData:true});
 
 setTimeout(() => { applyRiskPresentation(true); patchHistory(); }, 150);
 })();
