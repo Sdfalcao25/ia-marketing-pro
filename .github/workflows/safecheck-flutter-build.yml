@@ -55,6 +55,8 @@ jobs:
           s=s.replace(old,new)
           p.write_text(s)
           PY
+      - name: Add configurable MVP backend
+        run: python .safecheck-ci/apply_mvp_runtime_config.py
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       - name: Flutter doctor
@@ -73,6 +75,14 @@ jobs:
         run: |
           flutter create --platforms=android,web --org ai.safecheck --project-name safecheck_ai .
           rm -f test/widget_test.dart
+          python - <<'PY'
+          from pathlib import Path
+          p=Path('android/app/src/debug/AndroidManifest.xml')
+          s=p.read_text()
+          if 'android:usesCleartextTraffic="true"' not in s:
+              s=s.replace('</manifest>', '    <application android:usesCleartextTraffic="true"/>\n</manifest>')
+          p.write_text(s)
+          PY
       - name: Re-run analyze after scaffold
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter analyze
@@ -81,10 +91,10 @@ jobs:
         run: flutter test
       - name: Build APK
         working-directory: /tmp/safecheck_flutter/flutter_app
-        run: flutter build apk --debug --dart-define=API_BASE_URL=https://api.example.invalid
+        run: flutter build apk --debug --dart-define=API_BASE_URL=http://10.0.2.2:8000
       - name: Build web
         working-directory: /tmp/safecheck_flutter/flutter_app
-        run: flutter build web --dart-define=API_BASE_URL=https://api.example.invalid
+        run: flutter build web --dart-define=API_BASE_URL=http://localhost:8000
       - name: Package and hash artifacts
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: |
