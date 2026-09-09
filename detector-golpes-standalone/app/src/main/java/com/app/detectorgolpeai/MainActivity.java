@@ -4,13 +4,13 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
 import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -18,25 +18,30 @@ import android.widget.Toast;
 
 import org.json.JSONObject;
 
+import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 702;
-    private static final String APP_VERSION = "2.0.1";
+    private static final String APP_VERSION = "2.1.0";
+    private static final int DARK_SYSTEM = 0xFF020B11;
     private WebView webView;
+
+    private static final String BRAND_SVG =
+            "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 108 108\">" +
+            "<defs><linearGradient id=\"b\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop stop-color=\"#06353b\"/><stop offset=\"1\" stop-color=\"#010a0f\"/></linearGradient>" +
+            "<linearGradient id=\"g\" x1=\"0\" y1=\"0\" x2=\"1\" y2=\"1\"><stop stop-color=\"#8dffdd\"/><stop offset=\".45\" stop-color=\"#20e5a6\"/><stop offset=\"1\" stop-color=\"#00a878\"/></linearGradient></defs>" +
+            "<rect x=\"4\" y=\"4\" width=\"100\" height=\"100\" rx=\"24\" fill=\"url(#b)\"/>" +
+            "<path d=\"M54 16c-11 7-22 10-31 12v25c0 21 12 35 31 44 19-9 31-23 31-44V28c-9-2-20-5-31-12Z\" fill=\"#06343a\" stroke=\"url(#g)\" stroke-width=\"5\"/>" +
+            "<path d=\"m35 55 13 13 27-30\" fill=\"none\" stroke=\"url(#g)\" stroke-width=\"9\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/>" +
+            "</svg>";
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(0xFF173A3F);
-        getWindow().setNavigationBarColor(0xFFFFFFFF);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
-        } else {
-            getWindow().setNavigationBarColor(0xFF173A3F);
-        }
+        applyDarkSystemBars();
 
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
@@ -58,19 +63,26 @@ public class MainActivity extends Activity {
                 if ("safecheck.local".equalsIgnoreCase(uri.getHost())) return false;
                 String scheme = uri.getScheme();
                 if ("https".equalsIgnoreCase(scheme) || "http".equalsIgnoreCase(scheme)) {
-                    try {
-                        startActivity(new Intent(Intent.ACTION_VIEW, uri));
-                    } catch (Exception ignored) {
-                    }
+                    try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
                     return true;
                 }
                 return true;
             }
 
             @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                Uri uri = request.getUrl();
+                if ("safecheck.local".equalsIgnoreCase(uri.getHost()) && "/safecheck_logo.jpg".equals(uri.getPath())) {
+                    InputStream stream = new ByteArrayInputStream(BRAND_SVG.getBytes(StandardCharsets.UTF_8));
+                    return new WebResourceResponse("image/svg+xml", "UTF-8", stream);
+                }
+                return super.shouldInterceptRequest(view, request);
+            }
+
+            @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
-                if (url != null && url.startsWith("https://safecheck.local/")) injectRuntimePatch();
+                if (url != null && url.startsWith("https://safecheck.local/")) injectRuntimePatches();
             }
         });
         webView.addJavascriptInterface(new NativeBridge(), "SafeCheckNative");
@@ -84,8 +96,19 @@ public class MainActivity extends Activity {
         webView.loadDataWithBaseURL("https://safecheck.local/", html, "text/html", "UTF-8", null);
     }
 
-    private void injectRuntimePatch() {
-        String patch = readAssetText("auth_patch.js");
+    private void applyDarkSystemBars() {
+        getWindow().setStatusBarColor(DARK_SYSTEM);
+        getWindow().setNavigationBarColor(DARK_SYSTEM);
+        getWindow().getDecorView().setSystemUiVisibility(0);
+    }
+
+    private void injectRuntimePatches() {
+        injectAsset("auth_patch.js");
+        injectAsset("ui_patch.js");
+    }
+
+    private void injectAsset(String name) {
+        String patch = readAssetText(name);
         if (patch == null || patch.isEmpty()) return;
         evaluate(patch);
     }
@@ -110,11 +133,8 @@ public class MainActivity extends Activity {
                 intent.addCategory(Intent.CATEGORY_OPENABLE);
                 intent.setType("*/*");
                 intent.putExtra(Intent.EXTRA_MIME_TYPES, new String[]{"image/*", "application/pdf"});
-                try {
-                    startActivityForResult(intent, PICK_FILE);
-                } catch (Exception e) {
-                    Toast.makeText(MainActivity.this, "Não foi possível abrir o seletor de arquivos.", Toast.LENGTH_LONG).show();
-                }
+                try { startActivityForResult(intent, PICK_FILE); }
+                catch (Exception e) { Toast.makeText(MainActivity.this, "Não foi possível abrir o seletor de arquivos.", Toast.LENGTH_LONG).show(); }
             });
         }
 
@@ -129,9 +149,7 @@ public class MainActivity extends Activity {
         }
 
         @JavascriptInterface
-        public String appVersion() {
-            return APP_VERSION;
-        }
+        public String appVersion() { return APP_VERSION; }
     }
 
     @Override
@@ -143,8 +161,7 @@ public class MainActivity extends Activity {
         try {
             int flags = data.getFlags() & (Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
             getContentResolver().takePersistableUriPermission(uri, flags & Intent.FLAG_GRANT_READ_URI_PERMISSION);
-        } catch (Exception ignored) {
-        }
+        } catch (Exception ignored) {}
 
         String fileName = resolveName(uri);
         String mime = getContentResolver().getType(uri);
@@ -159,10 +176,8 @@ public class MainActivity extends Activity {
             public void onSuccess(String extractedText, int pagesProcessed, boolean partial) {
                 String note = partial ? "OCR parcial: primeiras " + pagesProcessed + " páginas." : "OCR concluído.";
                 String js = "window.onNativeFileExtracted && window.onNativeFileExtracted(" +
-                        JSONObject.quote(finalFileName) + "," +
-                        JSONObject.quote(finalMime) + "," +
-                        JSONObject.quote(extractedText == null ? "" : extractedText) + "," +
-                        pagesProcessed + "," + partial + "," + JSONObject.quote(note) + ");";
+                        JSONObject.quote(finalFileName) + "," + JSONObject.quote(finalMime) + "," +
+                        JSONObject.quote(extractedText == null ? "" : extractedText) + "," + pagesProcessed + "," + partial + "," + JSONObject.quote(note) + ");";
                 evaluate(js);
             }
 
@@ -197,9 +212,7 @@ public class MainActivity extends Activity {
     @Override
     protected void onResume() {
         super.onResume();
-        if (webView != null) {
-            evaluate("window.onSafeCheckResume && window.onSafeCheckResume();");
-        }
+        if (webView != null) evaluate("window.onSafeCheckResume && window.onSafeCheckResume();");
     }
 
     @Override

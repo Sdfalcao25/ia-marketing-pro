@@ -38,8 +38,13 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Validate authentication patch JavaScript
-        run: node --check app/src/main/assets/auth_patch.js
+      - name: Validate SafeCheck JavaScript patches
+        run: |
+          node --check app/src/main/assets/auth_patch.js
+          node --check app/src/main/assets/ui_patch.js
+          grep -F "Carlos Alisson Silva Falcão Lins" app/src/main/assets/ui_patch.js
+          grep -F "bait && unknown && channel" app/src/main/assets/ui_patch.js
+          grep -F "senior-light" app/src/main/assets/ui_patch.js
 
       - name: Verify Supabase Auth endpoint
         shell: bash
@@ -70,14 +75,14 @@ jobs:
           ls -lh app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/aapt dump badging app/build/outputs/apk/debug/app-debug.apk > /tmp/badging.txt
-          grep "versionName='2.0.1'" /tmp/badging.txt
+          grep "versionName='2.1.0'" /tmp/badging.txt
           grep "application-label:'SafeCheck AI'" /tmp/badging.txt
           grep "application-icon-" /tmp/badging.txt
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safecheck-ai-2.0.1-fixed-apk
+          name: safecheck-ai-2.1.0-professional-apk
           path: detector-golpes-standalone/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
