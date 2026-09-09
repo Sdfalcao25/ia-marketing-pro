@@ -57,6 +57,8 @@ jobs:
           PY
       - name: Add configurable MVP backend
         run: python .safecheck-ci/apply_mvp_runtime_config.py
+      - name: Fix blank-screen startup
+        run: python .safecheck-ci/apply_blank_screen_fix.py
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       - name: Flutter doctor
@@ -106,7 +108,7 @@ jobs:
           cp pubspec.lock build/pubspec.lock
       - uses: actions/upload-artifact@v4
         with:
-          name: safecheck-flutter-part7
+          name: safecheck-flutter-blank-screen-fix
           path: |
             /tmp/safecheck_flutter/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
             /tmp/safecheck_flutter/flutter_app/build/app-debug.sha256
