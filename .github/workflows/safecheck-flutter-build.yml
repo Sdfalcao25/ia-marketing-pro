@@ -59,6 +59,8 @@ jobs:
         run: python .safecheck-ci/apply_mvp_runtime_config.py
       - name: Fix blank-screen startup
         run: python .safecheck-ci/apply_blank_screen_fix.py
+      - name: Fix blank-screen regression assertion
+        run: python .safecheck-ci/fix_blank_screen_test_assertion.py
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       - name: Flutter doctor
