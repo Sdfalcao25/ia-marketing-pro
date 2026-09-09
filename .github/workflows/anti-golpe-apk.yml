@@ -1,4 +1,4 @@
-name: Build ANTI GOLPE AI APK
+name: Build ANTI GOLPE AI v2 APK
 
 on:
   push:
@@ -15,7 +15,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Reconstruct source archive
+      - name: Reconstruct base source archive
         shell: bash
         run: |
           set -euo pipefail
@@ -24,11 +24,12 @@ jobs:
           cat anti-golpe-build/payload/part00a anti-golpe-build/payload/part00b anti-golpe-build/payload/part01 anti-golpe-build/payload/part02 anti-golpe-build/payload/part03 anti-golpe-build/payload/part04 anti-golpe-build/payload/part05 anti-golpe-build/payload/part06 anti-golpe-build/payload/part07 anti-golpe-build/payload/part08 > /tmp/anti_golpe_ai_source.zip.b64
           base64 -d /tmp/anti_golpe_ai_source.zip.b64 > /tmp/anti_golpe_ai_source.zip
           echo 'f80c469f23b96435805d53dfd87472d73c04c0cea27700d35463ab690d2b3e2a  /tmp/anti_golpe_ai_source.zip' | sha256sum -c -
+          rm -rf /tmp/anti-source
           mkdir -p /tmp/anti-source
           unzip -q /tmp/anti_golpe_ai_source.zip -d /tmp/anti-source
           cp -a /tmp/anti-source/anti_golpe_ai/. "$GITHUB_WORKSPACE/"
 
-      - name: Apply verified compile fixes
+      - name: Apply verified v1 compile fixes
         shell: bash
         run: |
           python3 - <<'PY'
@@ -53,6 +54,19 @@ jobs:
           p.write_text(s)
           PY
 
+      - name: Apply ANTI GOLPE AI v2 patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat anti-golpe-build/v2patch/part00 anti-golpe-build/v2patch/part01 anti-golpe-build/v2patch/part02 anti-golpe-build/v2patch/part03 anti-golpe-build/v2patch/part04 > /tmp/anti_golpe_v2_patch.zip.b64
+          base64 -d /tmp/anti_golpe_v2_patch.zip.b64 > /tmp/anti_golpe_v2_patch.zip
+          echo '082aa44f51a9855bc329c6947a8cd0d91f9e1213b460db38d9a6997bebd1d39a  /tmp/anti_golpe_v2_patch.zip' | sha256sum -c -
+          unzip -t /tmp/anti_golpe_v2_patch.zip >/dev/null
+          unzip -oq /tmp/anti_golpe_v2_patch.zip -d "$GITHUB_WORKSPACE"
+          grep -q '^version: 0.2.0+2' pubspec.yaml
+          test -s lib/core/services/site_research_service.dart
+          test -s lib/features/learn/learn_screen.dart
+
       - name: Set up Flutter stable
         uses: subosito/flutter-action@v2
         with:
@@ -74,7 +88,7 @@ jobs:
       - name: Build debug APK
         run: flutter build apk --debug
 
-      - name: Validate APK
+      - name: Validate v2 APK
         shell: bash
         run: |
           set -euo pipefail
@@ -83,15 +97,15 @@ jobs:
           unzip -t build/app/outputs/flutter-apk/app-debug.apk >/dev/null
           sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee apk-sha256.txt
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai.apk
+          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai_v2.apk
           cp apk-sha256.txt dist/APK_SHA256.txt
           cp flutter-analyze.log dist/flutter-analyze.log
           cp flutter-test.log dist/flutter-test.log
 
-      - name: Upload APK artifact
+      - name: Upload v2 APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: anti-golpe-ai-apk
+          name: anti-golpe-ai-v2-apk
           path: dist/
           if-no-files-found: error
           retention-days: 30
