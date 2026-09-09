@@ -10,8 +10,8 @@ android {
         applicationId 'com.app.detectorgolpeai'
         minSdk 24
         targetSdk 35
-        versionCode 8
-        versionName '2.4.0'
+        versionCode 9
+        versionName '2.4.1'
     }
 
     buildTypes {
@@ -31,6 +31,5 @@ android {
 }
 
 dependencies {
-    // Bundled Latin OCR model: works on-device without downloading a model at first use.
     implementation 'com.google.mlkit:text-recognition:16.0.1'
 }
