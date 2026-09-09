@@ -45,7 +45,7 @@ jobs:
           cat anti-golpe-build/v3patch/part00 anti-golpe-build/v3patch/part01 >/tmp/v3.b64
           base64 -d /tmp/v3.b64 >/tmp/v3.zip
           unzip -t /tmp/v3.zip >/dev/null && unzip -oq /tmp/v3.zip -d .
-          grep -q 'devolver|devolva|devolve' lib/features/analysis/local_ai_analysis_service.dart
+          grep -Eq 'devolver|devolva|devolve' lib/features/analysis/local_ai_analysis_service.dart
           grep -q '^version: 0.3.0+3' pubspec.yaml
           python3 - <<'PY'
           from pathlib import Path
