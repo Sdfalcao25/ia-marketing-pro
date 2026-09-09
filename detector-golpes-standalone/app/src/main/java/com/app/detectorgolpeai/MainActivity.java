@@ -4,10 +4,13 @@ import android.app.Activity;
 import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.provider.OpenableColumns;
+import android.view.View;
 import android.webkit.JavascriptInterface;
 import android.webkit.WebChromeClient;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
@@ -21,6 +24,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 702;
+    private static final String APP_VERSION = "2.0.1";
     private WebView webView;
 
     @Override
@@ -28,6 +32,11 @@ public class MainActivity extends Activity {
         super.onCreate(savedInstanceState);
         getWindow().setStatusBarColor(0xFF173A3F);
         getWindow().setNavigationBarColor(0xFFFFFFFF);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        } else {
+            getWindow().setNavigationBarColor(0xFF173A3F);
+        }
 
         webView = new WebView(this);
         WebSettings settings = webView.getSettings();
@@ -38,13 +47,13 @@ public class MainActivity extends Activity {
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
         settings.setBuiltInZoomControls(false);
         settings.setDisplayZoomControls(false);
-        settings.setUserAgentString(settings.getUserAgentString() + " SafeCheckAI-Android/2.0");
+        settings.setUserAgentString(settings.getUserAgentString() + " SafeCheckAI-Android/" + APP_VERSION);
 
         WebView.setWebContentsDebuggingEnabled(false);
         webView.setWebChromeClient(new WebChromeClient());
         webView.setWebViewClient(new WebViewClient() {
             @Override
-            public boolean shouldOverrideUrlLoading(WebView view, android.webkit.WebResourceRequest request) {
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 if ("safecheck.local".equalsIgnoreCase(uri.getHost())) return false;
                 String scheme = uri.getScheme();
@@ -57,6 +66,12 @@ public class MainActivity extends Activity {
                 }
                 return true;
             }
+
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                if (url != null && url.startsWith("https://safecheck.local/")) injectRuntimePatch();
+            }
         });
         webView.addJavascriptInterface(new NativeBridge(), "SafeCheckNative");
         setContentView(webView);
@@ -66,9 +81,13 @@ public class MainActivity extends Activity {
             Toast.makeText(this, "Falha ao carregar a interface do aplicativo.", Toast.LENGTH_LONG).show();
             return;
         }
-        // Use an HTTPS base origin for the bundled UI. This keeps file:// access disabled
-        // and lets normal CORS rules protect requests to the remote backend.
         webView.loadDataWithBaseURL("https://safecheck.local/", html, "text/html", "UTF-8", null);
+    }
+
+    private void injectRuntimePatch() {
+        String patch = readAssetText("auth_patch.js");
+        if (patch == null || patch.isEmpty()) return;
+        evaluate(patch);
     }
 
     private String readAssetText(String name) {
@@ -111,7 +130,7 @@ public class MainActivity extends Activity {
 
         @JavascriptInterface
         public String appVersion() {
-            return "2.0.0";
+            return APP_VERSION;
         }
     }
 
@@ -173,6 +192,14 @@ public class MainActivity extends Activity {
             if (cursor != null) cursor.close();
         }
         return name == null || name.isBlank() ? "arquivo" : name;
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (webView != null) {
+            evaluate("window.onSafeCheckResume && window.onSafeCheckResume();");
+        }
     }
 
     @Override
