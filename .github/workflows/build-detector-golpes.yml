@@ -74,10 +74,10 @@ jobs:
             'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api/analysis/message')
           echo "Paid endpoint unauthenticated HTTP $paid_code"
           echo "Billing endpoint unauthenticated HTTP $billing_code"
-          echo "Legacy endpoint unauthenticated HTTP $legacy_code"
+          echo "Legacy endpoint HTTP $legacy_code"
           test "$paid_code" = "401"
           test "$billing_code" = "401"
-          test "$legacy_code" = "401"
+          test "$legacy_code" = "410"
 
       - name: Compile debug APK
         run: gradle :app:assembleDebug --stacktrace
