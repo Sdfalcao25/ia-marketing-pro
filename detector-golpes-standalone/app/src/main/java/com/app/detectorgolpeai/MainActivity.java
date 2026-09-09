@@ -25,7 +25,7 @@ import java.nio.charset.StandardCharsets;
 
 public class MainActivity extends Activity {
     private static final int PICK_FILE = 702;
-    private static final String APP_VERSION = "2.4.1";
+    private static final String APP_VERSION = "2.4.2";
     private static final int DARK_SYSTEM = 0xFF020B11;
     private WebView webView;
 
@@ -111,7 +111,7 @@ public class MainActivity extends Activity {
         injectAsset("risk_patch.js");
         injectAsset("client_patch_230.js");
         injectAsset("freemium_patch_240.js");
-        injectAsset("audit_patch_241.js");
+        injectAsset("audit_patch_242.js");
     }
 
     private void injectAsset(String name) {
