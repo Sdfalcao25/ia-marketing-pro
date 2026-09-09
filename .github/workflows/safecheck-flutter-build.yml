@@ -70,22 +70,30 @@ jobs:
         run: flutter test
       - name: Create Android and web scaffold
         working-directory: /tmp/safecheck_flutter/flutter_app
-        run: flutter create --platforms=android,web --org ai.safecheck --project-name safecheck_ai .
+        run: |
+          flutter create --platforms=android,web --org ai.safecheck --project-name safecheck_ai .
+          rm -f test/widget_test.dart
       - name: Re-run analyze after scaffold
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter analyze
+      - name: Re-run tests after scaffold
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter test
       - name: Build APK
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter build apk --debug --dart-define=API_BASE_URL=https://api.example.invalid
       - name: Build web
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: flutter build web --dart-define=API_BASE_URL=https://api.example.invalid
-      - name: Hash artifacts
+      - name: Package and hash artifacts
         working-directory: /tmp/safecheck_flutter/flutter_app
         run: |
           sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee build/app-debug.sha256
           tar -czf build/web-build.tar.gz -C build web
           sha256sum build/web-build.tar.gz | tee build/web-build.sha256
+          tar --exclude='./build' --exclude='./.dart_tool' -czf build/flutter-source-with-platforms.tar.gz .
+          sha256sum build/flutter-source-with-platforms.tar.gz | tee build/flutter-source.sha256
+          cp pubspec.lock build/pubspec.lock
       - uses: actions/upload-artifact@v4
         with:
           name: safecheck-flutter-part7
@@ -94,4 +102,7 @@ jobs:
             /tmp/safecheck_flutter/flutter_app/build/app-debug.sha256
             /tmp/safecheck_flutter/flutter_app/build/web-build.tar.gz
             /tmp/safecheck_flutter/flutter_app/build/web-build.sha256
+            /tmp/safecheck_flutter/flutter_app/build/flutter-source-with-platforms.tar.gz
+            /tmp/safecheck_flutter/flutter_app/build/flutter-source.sha256
+            /tmp/safecheck_flutter/flutter_app/build/pubspec.lock
           if-no-files-found: error
