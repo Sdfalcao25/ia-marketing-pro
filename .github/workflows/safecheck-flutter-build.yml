@@ -32,6 +32,21 @@ jobs:
           unzip -q /tmp/safecheck_flutter.zip -d /tmp/safecheck_flutter
           test -f /tmp/safecheck_flutter/flutter_app/pubspec.yaml
           sha256sum /tmp/safecheck_flutter.zip
+      - name: Apply reviewed source corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/safecheck_flutter/flutter_app')
+          p=root/'lib/src/screens/history_screen.dart'
+          s=p.read_text().replace("return const ListView(children: [SizedBox(height: 260), Center(child: CircularProgressIndicator())]);","return ListView(children: const [SizedBox(height: 260), Center(child: CircularProgressIndicator())]);")
+          p.write_text(s)
+          p=root/'test/auth_test.dart'
+          s=p.read_text()
+          if "package:flutter/material.dart" not in s:
+              s="import 'package:flutter/material.dart';\n"+s
+          p.write_text(s)
+          PY
       - name: Accept Android licenses
         run: yes | flutter doctor --android-licenses || true
       - name: Flutter doctor
