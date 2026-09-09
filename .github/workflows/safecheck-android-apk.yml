@@ -17,7 +17,9 @@ jobs:
       - name: Validate SafeCheck JavaScript
         run: |
           node --check safecheck-android/app/src/main/assets/app.js
+          node --check safecheck-android/app/src/main/assets/cloud-fix.js
           node --check safecheck-android/app/src/main/assets/risk-ui.js
+          grep -q 'cloud-fix.js' safecheck-android/app/src/main/assets/index.html
           grep -q 'risk-ui.js' safecheck-android/app/src/main/assets/index.html
       - name: Check SafeCheck backend health
         run: |
