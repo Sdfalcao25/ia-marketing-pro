@@ -14,6 +14,20 @@ jobs:
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
+      - name: Validate SafeCheck JavaScript
+        run: node --check safecheck-android/app/src/main/assets/app.js
+      - name: Check SafeCheck backend health
+        run: |
+          curl --fail --silent --show-error --max-time 20 \
+            https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api/health \
+            -o /tmp/safecheck-health.json
+          python3 - <<'PY'
+          import json
+          data=json.load(open('/tmp/safecheck-health.json'))
+          assert data.get('ok') is True, data
+          assert data.get('databaseConfigured') is True, data
+          print('SafeCheck backend healthy; AI configured:', bool(data.get('aiConfigured')))
+          PY
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
