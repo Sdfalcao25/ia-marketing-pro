@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+  <meta name="theme-color" content="#173a3f" />
+  <title>Detector de Golpes</title>
+  <style>
+    :root{--ink:#172d32;--muted:#61767a;--brand:#173a3f;--accent:#167c80;--bg:#f5f8f8;--card:#fff;--line:#dfe9e9;--good:#25945f;--warn:#d89a28;--danger:#cb4236;--critical:#a51f28;--shadow:0 10px 30px rgba(23,58,63,.09)}
+    *{box-sizing:border-box;-webkit-tap-highlight-color:transparent} html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif} body{min-height:100vh}
+    button,input,textarea,select{font:inherit} button{cursor:pointer}.hidden{display:none!important}.screen{min-height:100vh}.auth-shell{min-height:100vh;padding:34px 20px 28px;background:linear-gradient(180deg,#173a3f 0,#173a3f 36%,#f5f8f8 36%)}
+    .brand{display:flex;align-items:center;gap:11px;color:#fff;margin-bottom:28px}.shield{width:42px;height:48px;border:2px solid #8fe0d1;border-radius:13px 13px 18px 18px;display:grid;place-items:center;font-weight:900;color:#8fe0d1}.brand b{font-size:21px}.brand small{display:block;color:#cfe3e0;margin-top:2px}
+    .auth-card{background:#fff;border-radius:24px;padding:22px;box-shadow:0 18px 45px rgba(4,27,31,.2)} h1,h2,h3,p{margin-top:0}.auth-card h1{font-size:27px;margin-bottom:8px}.muted{color:var(--muted)}.field{margin:14px 0}.field label{display:block;font-size:13px;font-weight:700;margin-bottom:7px}.input{width:100%;border:1px solid var(--line);background:#f8fbfb;border-radius:13px;padding:14px;color:var(--ink);outline:none}.input:focus{border-color:#65b6b8;box-shadow:0 0 0 3px rgba(22,124,128,.10)} textarea.input{min-height:130px;resize:vertical}.btn{width:100%;border:0;border-radius:13px;padding:14px 16px;font-weight:800}.btn-primary{background:var(--accent);color:#fff}.btn-primary:disabled{opacity:.55}.btn-soft{background:#e6f2f2;color:var(--brand)}.btn-danger{background:#fff0ef;color:#b73129}.link-btn{border:0;background:transparent;color:var(--accent);font-weight:800;padding:8px}.auth-switch{text-align:center;margin-top:13px}.notice{border-radius:12px;padding:12px 13px;font-size:13px;margin:12px 0}.notice.info{background:#e8f4f4;color:#245e62}.notice.error{background:#fff0ef;color:#a8322b}.notice.ok{background:#eaf7f0;color:#246a49}
+    #app{padding-bottom:82px}.topbar{position:sticky;top:0;z-index:6;background:rgba(245,248,248,.95);backdrop-filter:blur(12px);padding:14px 17px 10px;border-bottom:1px solid rgba(223,233,233,.75);display:flex;align-items:center;justify-content:space-between}.top-brand{display:flex;align-items:center;gap:9px}.mini-shield{width:30px;height:34px;border-radius:9px 9px 12px 12px;background:var(--brand);color:#9be0d5;display:grid;place-items:center;font-size:14px;font-weight:900}.top-brand b{font-size:17px}.online-dot{width:9px;height:9px;border-radius:50%;background:#95a7a8;box-shadow:0 0 0 4px rgba(149,167,168,.13)}.online-dot.ok{background:#2ca06b;box-shadow:0 0 0 4px rgba(44,160,107,.14)}
+    .page{padding:18px 17px 22px;max-width:760px;margin:0 auto}.hero{background:linear-gradient(145deg,#173a3f,#24575c);border-radius:22px;padding:21px;color:#fff;box-shadow:var(--shadow);margin-bottom:16px}.hero .eyebrow{font-size:11px;letter-spacing:.1em;color:#9be0d5;font-weight:900}.hero h1{font-size:26px;line-height:1.08;margin:8px 0}.hero p{color:#d6e7e5;line-height:1.5;font-size:14px;margin-bottom:15px}.hero .btn{background:#1a8c8f}.section-title{font-size:18px;margin:20px 2px 10px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}.quick{background:#fff;border:1px solid var(--line);border-radius:17px;padding:15px;min-height:120px;box-shadow:0 3px 14px rgba(23,58,63,.04);display:flex;flex-direction:column;justify-content:space-between}.quick .icon{font-size:22px}.quick b{font-size:14px}.quick small{color:var(--muted);line-height:1.35}.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-bottom:12px;box-shadow:0 4px 18px rgba(23,58,63,.04)}.row{display:flex;gap:10px;align-items:center}.between{justify-content:space-between}.chips{display:flex;gap:7px;flex-wrap:wrap}.chip{border-radius:999px;background:#e8f3f3;color:#285d61;padding:6px 9px;font-size:11px;font-weight:800}.form-actions{display:grid;grid-template-columns:1fr 1fr;gap:9px}.file-box{border:1px dashed #a9c7c8;border-radius:14px;padding:13px;background:#f8fbfb;margin:10px 0}.file-status{font-size:12px;color:var(--muted);margin-top:6px;white-space:pre-wrap}.loader{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:spin .8s linear infinite;vertical-align:-3px;margin-right:7px}@keyframes spin{to{transform:rotate(360deg)}}
+    .result-head{display:flex;gap:16px;align-items:center}.gauge{--score:0;--g:#25945f;width:108px;height:108px;border-radius:50%;background:conic-gradient(var(--g) calc(var(--score)*1%),#e5ecec 0);position:relative;flex:0 0 108px}.gauge:after{content:"";position:absolute;inset:10px;border-radius:50%;background:#fff}.gauge .inside{position:absolute;inset:0;z-index:1;display:grid;place-items:center;text-align:center;font-weight:900;font-size:26px}.gauge .inside small{display:block;font-size:10px;color:var(--muted);font-weight:800}.risk-title{font-size:19px;font-weight:900}.risk-sub{font-size:13px;color:var(--muted);margin-top:4px}.score-safe{display:inline-block;margin-top:7px;padding:5px 8px;border-radius:8px;background:#eef5f5;font-size:11px;font-weight:800}.list{padding-left:20px;margin:10px 0}.list li{margin:7px 0;line-height:1.42;font-size:14px}.history-card{position:relative}.history-top{display:flex;justify-content:space-between;gap:12px}.risk-pill{border-radius:999px;padding:5px 8px;font-size:10px;font-weight:900;height:max-content}.risk-very_low,.risk-low{background:#e9f7ef;color:#26724f}.risk-moderate{background:#fff6df;color:#946417}.risk-high{background:#fff0e7;color:#ae5125}.risk-critical{background:#ffe9e9;color:#a32630}.preview{color:#536a6e;font-size:13px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}.date{font-size:11px;color:#829497}.empty{text-align:center;padding:28px 14px;color:var(--muted)}.learn h3{margin-bottom:6px}.learn p{color:var(--muted);line-height:1.55;font-size:14px}.account-email{font-weight:900;word-break:break-all}.status-line{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid #edf2f2;font-size:13px}.status-line:last-child{border-bottom:0}
+    .bottom-nav{position:fixed;bottom:0;left:0;right:0;z-index:8;height:72px;padding-bottom:env(safe-area-inset-bottom);background:#fff;border-top:1px solid var(--line);display:grid;grid-template-columns:repeat(4,1fr);box-shadow:0 -8px 25px rgba(23,58,63,.07)}.nav{border:0;background:transparent;color:#708487;font-size:11px;font-weight:700;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}.nav span{font-size:20px;line-height:1}.nav.active{color:var(--accent)}.toast{position:fixed;left:18px;right:18px;bottom:88px;z-index:30;background:#173a3f;color:#fff;border-radius:13px;padding:12px 14px;box-shadow:0 12px 35px rgba(0,0,0,.22);font-size:13px;opacity:0;transform:translateY(12px);pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:none}.server-badge{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 9px;font-size:10px;font-weight:900;background:#e7f5ef;color:#28704e}.server-badge.local{background:#fff4df;color:#946417}.danger-text{color:#b7332b}.mini{font-size:12px}.spacer{height:8px}
+    @media(min-width:620px){.grid{grid-template-columns:repeat(3,1fr)}.auth-shell{padding-left:max(20px,calc((100vw - 440px)/2));padding-right:max(20px,calc((100vw - 440px)/2))}}
+  </style>
+</head>
+<body>
+<div id="auth" class="screen auth-shell">
+  <div class="brand"><div class="shield">✓</div><div><b>Detector de Golpes</b><small>SafeCheck AI · proteção digital</small></div></div>
+  <div class="auth-card">
+    <div id="loginPanel">
+      <h1>Entre na sua conta</h1><p class="muted">Seu histórico fica protegido e sincronizado na nuvem.</p>
+      <div id="loginNotice"></div>
+      <div class="field"><label>E-mail</label><input id="loginEmail" class="input" type="email" autocomplete="email" placeholder="voce@email.com"></div>
+      <div class="field"><label>Senha</label><input id="loginPassword" class="input" type="password" autocomplete="current-password" placeholder="••••••••"></div>
+      <button id="loginBtn" class="btn btn-primary" onclick="login()">Entrar</button>
+      <div class="auth-switch"><span class="muted mini">Ainda não tem conta?</span> <button class="link-btn" onclick="showSignup()">Criar conta</button></div>
+    </div>
+    <div id="signupPanel" class="hidden">
+      <h1>Crie sua conta</h1><p class="muted">Use pelo menos 8 caracteres na senha. Você poderá precisar confirmar o e-mail.</p>
+      <div id="signupNotice"></div>
+      <div class="field"><label>Nome</label><input id="signupName" class="input" type="text" autocomplete="name" placeholder="Seu nome"></div>
+      <div class="field"><label>E-mail</label><input id="signupEmail" class="input" type="email" autocomplete="email" placeholder="voce@email.com"></div>
+      <div class="field"><label>Senha</label><input id="signupPassword" class="input" type="password" autocomplete="new-password" placeholder="Mínimo 8 caracteres"></div>
+      <button id="signupBtn" class="btn btn-primary" onclick="signup()">Criar conta</button>
+      <div class="auth-switch"><span class="muted mini">Já possui conta?</span> <button class="link-btn" onclick="showLogin()">Entrar</button></div>
+    </div>
+  </div>
+</div>
+
+<div id="app" class="screen hidden">
+  <div class="topbar"><div class="top-brand"><div class="mini-shield">✓</div><div><b>SafeCheck AI</b><div class="mini muted">Detector de Golpes 2.0</div></div></div><div id="onlineDot" class="online-dot"></div></div>
+  <main id="content"></main>
+  <nav class="bottom-nav">
+    <button class="nav active" data-tab="home" onclick="go('home',this)"><span>⌂</span>Início</button>
+    <button class="nav" data-tab="history" onclick="go('history',this)"><span>◷</span>Histórico</button>
+    <button class="nav" data-tab="learn" onclick="go('learn',this)"><span>?</span>Aprender</button>
+    <button class="nav" data-tab="account" onclick="go('account',this)"><span>●</span>Conta</button>
+  </nav>
+</div>
+<div id="toast" class="toast"></div>
+
+<script>
+const SUPABASE_URL='https://pwlblezbjnumlmqevcgu.supabase.co';
+const PUBLISHABLE_KEY='sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv';
+const ANALYZE_URL=SUPABASE_URL+'/functions/v1/safecheck-analyze';
+const SESSION_KEY='safecheck_session_v2';
+let session=null,currentTab='home',fileData=null,lastReport=null,busy=false;
+
+function $(id){return document.getElementById(id)}
+function esc(v){return String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]))}
+function toast(msg){const t=$('toast');t.textContent=msg;t.classList.add('show');clearTimeout(window.__toast);window.__toast=setTimeout(()=>t.classList.remove('show'),2800)}
+function notice(id,msg,type='info'){const el=$(id);if(!el)return;el.innerHTML=msg?`<div class="notice ${type}">${esc(msg)}</div>`:''}
+function setBusy(btnId,on,label){busy=on;const b=$(btnId);if(!b)return;b.disabled=on;if(on)b.dataset.old=b.innerHTML,b.innerHTML=`<span class="loader"></span>${label}`;else if(b.dataset.old)b.innerHTML=b.dataset.old}
+function saveSession(s){session=s;localStorage.setItem(SESSION_KEY,JSON.stringify(s));}
+function clearSession(){session=null;localStorage.removeItem(SESSION_KEY);}
+function getStoredSession(){try{return JSON.parse(localStorage.getItem(SESSION_KEY)||'null')}catch(e){return null}}
+function authHeaders(token){return {'apikey':PUBLISHABLE_KEY,'Authorization':'Bearer '+token,'Content-Type':'application/json'}}
+async function jsonFetch(url,options={},timeout=15000){const c=new AbortController();const timer=setTimeout(()=>c.abort(),timeout);try{const r=await fetch(url,{...options,signal:c.signal});const text=await r.text();let data={};try{data=text?JSON.parse(text):{}}catch(e){data={raw:text}}if(!r.ok){const er=new Error(data.msg||data.message||data.error_description||data.error||('HTTP '+r.status));er.status=r.status;er.data=data;throw er}return data}finally{clearTimeout(timer)}}
+
+function showSignup(){ $('loginPanel').classList.add('hidden');$('signupPanel').classList.remove('hidden');notice('signupNotice',''); }
+function showLogin(){ $('signupPanel').classList.add('hidden');$('loginPanel').classList.remove('hidden');notice('loginNotice',''); }
+async function signup(){
+  const name=$('signupName').value.trim(),email=$('signupEmail').value.trim(),password=$('signupPassword').value;
+  if(!email||password.length<8){notice('signupNotice','Informe um e-mail válido e uma senha com pelo menos 8 caracteres.','error');return}
+  setBusy('signupBtn',true,'Criando conta…');
+  try{
+    const data=await jsonFetch(SUPABASE_URL+'/auth/v1/signup',{method:'POST',headers:{'apikey':PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password,data:{display_name:name}})});
+    if(data.access_token){saveSession(data);await ensureProfile(name);enterApp();toast('Conta criada com sucesso.');}
+    else{showLogin();$('loginEmail').value=email;notice('loginNotice','Conta criada. Confira seu e-mail para confirmar o cadastro e depois entre.','ok');}
+  }catch(e){notice('signupNotice',friendlyError(e),'error')}finally{setBusy('signupBtn',false)}
+}
+async function login(){
+  const email=$('loginEmail').value.trim(),password=$('loginPassword').value;
+  if(!email||!password){notice('loginNotice','Preencha e-mail e senha.','error');return}
+  setBusy('loginBtn',true,'Entrando…');
+  try{
+    const data=await jsonFetch(SUPABASE_URL+'/auth/v1/token?grant_type=password',{method:'POST',headers:{'apikey':PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({email,password})});
+    saveSession(data);await ensureProfile();enterApp();
+  }catch(e){notice('loginNotice',friendlyError(e),'error')}finally{setBusy('loginBtn',false)}
+}
+function friendlyError(e){const m=String(e?.message||'Erro inesperado');if(/invalid login credentials/i.test(m))return'E-mail ou senha incorretos, ou o e-mail ainda não foi confirmado.';if(/email not confirmed/i.test(m))return'Confirme seu e-mail antes de entrar.';if(/user already registered/i.test(m))return'Este e-mail já possui cadastro.';if(/abort|network|failed to fetch/i.test(m))return'Não foi possível conectar ao servidor. Verifique sua internet.';return m}
+async function refreshSession(){
+  if(!session?.refresh_token)throw new Error('Sessão expirada');
+  const data=await jsonFetch(SUPABASE_URL+'/auth/v1/token?grant_type=refresh_token',{method:'POST',headers:{'apikey':PUBLISHABLE_KEY,'Content-Type':'application/json'},body:JSON.stringify({refresh_token:session.refresh_token})});
+  saveSession(data);return data;
+}
+async function ensureSession(){
+  session=session||getStoredSession();if(!session?.access_token)return null;
+  const exp=session.expires_at?Number(session.expires_at)*1000:0;
+  if(exp&&exp>Date.now()+60000)return session;
+  try{return await refreshSession()}catch(e){clearSession();return null}
+}
+async function ensureProfile(name){
+  try{const s=await ensureSession();if(!s?.user?.id)return;const display=name||s.user.user_metadata?.display_name||s.user.email?.split('@')[0]||'';await fetch(SUPABASE_URL+'/rest/v1/safecheck_profiles?on_conflict=user_id',{method:'POST',headers:{...authHeaders(s.access_token),'Prefer':'resolution=merge-duplicates,return=minimal'},body:JSON.stringify({user_id:s.user.id,display_name:display})})}catch(e){}
+}
+async function logout(){
+  try{if(session?.access_token)await fetch(SUPABASE_URL+'/auth/v1/logout',{method:'POST',headers:authHeaders(session.access_token)})}catch(e){}
+  clearSession();fileData=null;lastReport=null;$('app').classList.add('hidden');$('auth').classList.remove('hidden');showLogin();notice('loginNotice','Sessão encerrada.','ok');
+}
+
+function enterApp(){ $('auth').classList.add('hidden');$('app').classList.remove('hidden');setOnline(false);go('home',document.querySelector('[data-tab="home"]'));checkBackend(); }
+function go(tab,btn){currentTab=tab;document.querySelectorAll('.nav').forEach(n=>n.classList.toggle('active',n.dataset.tab===tab));if(tab==='home')renderHome();if(tab==='history')renderHistory();if(tab==='learn')renderLearn();if(tab==='account')renderAccount()}
+function setOnline(ok){$('onlineDot').classList.toggle('ok',!!ok)}
+async function checkBackend(){try{await jsonFetch(SUPABASE_URL+'/auth/v1/settings',{headers:{'apikey':PUBLISHABLE_KEY}},7000);setOnline(true);return true}catch(e){setOnline(false);return false}}
+
+function renderHome(){
+ $('content').innerHTML=`<div class="page">
+  <section class="hero"><div class="eyebrow">CHECK BEFORE YOU TRUST</div><h1>Verifique antes de clicar, pagar ou confiar.</h1><p>Analise mensagens, links, PIX, ofertas, perfis, prints, fotos e PDFs. O servidor combina sinais de fraude com validações técnicas e salva o resultado no seu histórico.</p><button class="btn btn-primary" onclick="openAnalyze('message')">Fazer uma análise</button></section>
+  <h2 class="section-title">Verificações rápidas</h2><div class="grid">
+   ${quick('💬','Mensagem','WhatsApp, SMS ou e-mail','message')}${quick('🔗','Link / site','Login, loja ou rastreio','url')}${quick('💸','PIX','Copia e Cola ou cobrança','pix')}${quick('🏷️','Oferta','Promoção e anúncio','offer')}${quick('🖼️','Print / foto','OCR automático no celular','image')}${quick('📄','PDF','OCR das primeiras páginas','pdf')}${quick('👤','Perfil','Vendedor ou contato','profile')}
+  </div>
+  <div class="card" style="margin-top:16px"><div class="row between"><b>Privacidade por desenho</b><span class="chip">LGPD friendly</span></div><p class="muted mini" style="margin:9px 0 0">Imagens e PDFs são lidos no próprio aparelho. O app envia ao servidor o texto extraído, não o arquivo original. O histórico fica protegido por usuário no banco.</p></div>
+ </div>`;
+}
+function quick(icon,title,desc,type){return `<button class="quick" onclick="openAnalyze('${type}')"><div class="icon">${icon}</div><div><b>${title}</b><br><small>${desc}</small></div></button>`}
+
+function openAnalyze(type='message'){
+ fileData=null;
+ const labels={message:'Mensagem suspeita',url:'Link ou site',pix:'PIX / pagamento',offer:'Oferta ou anúncio',image:'Print ou foto',pdf:'PDF / documento',profile:'Perfil ou vendedor'};
+ $('content').innerHTML=`<div class="page"><div class="row between"><div><h2 style="margin-bottom:4px">Nova análise</h2><div class="muted mini">Quanto mais contexto, melhor a avaliação.</div></div><button class="link-btn" onclick="renderHome()">Cancelar</button></div>
+ <div class="card" style="margin-top:14px">
+  <div class="field"><label>Tipo</label><select id="analysisType" class="input" onchange="typeChanged()">${Object.entries(labels).map(([k,v])=>`<option value="${k}" ${k===type?'selected':''}>${v}</option>`).join('')}</select></div>
+  <div class="field"><label id="mainLabel">Conteúdo recebido</label><textarea id="analysisText" class="input" placeholder="Cole a mensagem, URL, PIX, descrição da oferta ou dados do perfil…"></textarea></div>
+  <div class="field"><label>Contexto opcional</label><textarea id="analysisContext" class="input" style="min-height:95px" placeholder="Quem enviou? Como chegou? O que estão pedindo? Você conhece a pessoa/empresa?"></textarea></div>
+  <div class="file-box"><div class="row between"><div><b>Imagem ou PDF</b><div class="mini muted">OCR executado no aparelho</div></div><button class="btn btn-soft" style="width:auto;padding:10px 12px" onclick="pickFile()">Selecionar</button></div><div id="fileStatus" class="file-status">Nenhum arquivo selecionado.</div></div>
+  <button id="analyzeBtn" class="btn btn-primary" onclick="submitAnalysis()">Analisar com SafeCheck</button>
+ </div><div class="notice info">O resultado é uma avaliação de risco, não uma garantia absoluta de autenticidade. Em pagamentos e dados sensíveis, confirme sempre pelo canal oficial.</div></div>`;
+ typeChanged();
+}
+function typeChanged(){const t=$('analysisType')?.value;if(!$('mainLabel'))return;const map={url:'URL ou endereço do site',pix:'PIX Copia e Cola, chave ou texto da cobrança',image:'Descrição adicional (opcional)',pdf:'Descrição adicional (opcional)',profile:'Dados do perfil ou vendedor'};$('mainLabel').textContent=map[t]||'Conteúdo recebido'}
+function pickFile(){if(window.SafeCheckNative?.pickFile)SafeCheckNative.pickFile();else toast('Seletor nativo indisponível.')}
+window.onNativeFileStatus=function(status,msg){const el=$('fileStatus');if(!el)return;el.textContent=msg;el.className='file-status '+(status==='error'?'danger-text':'')}
+window.onNativeFileExtracted=function(name,mime,text,pages,partial,note){fileData={name,mime,text:text||'',pages,partial};const el=$('fileStatus');if(el)el.innerHTML=`<b>${esc(name)}</b><br>${esc(note)} ${text?esc(text.slice(0,220))+(text.length>220?'…':''):'Nenhum texto foi reconhecido.'}`;const sel=$('analysisType');if(sel){sel.value=mime==='application/pdf'?'pdf':'image';typeChanged()}toast('Arquivo lido no aparelho.')}
+
+async function submitAnalysis(){
+ if(busy)return;let type=$('analysisType').value;const text=$('analysisText').value.trim(),context=$('analysisContext').value.trim();
+ if(!text&&!fileData){toast('Cole um conteúdo ou selecione um arquivo.');return}
+ const s=await ensureSession();if(!s){toast('Sua sessão expirou. Entre novamente.');logout();return}
+ const payload={type,context,fileName:fileData?.name||undefined,extractedText:fileData?.text||undefined};if(type==='url')payload.url=text;else payload.text=text;
+ setBusy('analyzeBtn',true,'Analisando no servidor…');
+ try{
+   const data=await jsonFetch(ANALYZE_URL,{method:'POST',headers:authHeaders(s.access_token),body:JSON.stringify(payload)},18000);
+   lastReport={...data,mode:'server',inputPreview:text||fileData?.name||'Arquivo',type};setOnline(true);renderResult(lastReport);
+ }catch(e){
+   setOnline(false);const local=localAnalyze((text+' '+context+' '+(fileData?.text||'')).trim(),type);lastReport={...local,mode:'local',inputPreview:text||fileData?.name||'Arquivo',type,error:friendlyError(e)};renderResult(lastReport);toast('Servidor indisponível: exibindo análise local de emergência.');
+ }finally{busy=false}
+}
+function localAnalyze(raw,type){
+ const t=(raw||'').toLowerCase();let score=5,reasons=[],recommendations=['Não compartilhe senha, token, código SMS ou CVV.','Confirme a identidade por um canal oficial aberto por você.'];
+ const hit=(re,w,r)=>{if(re.test(t)){score+=w;reasons.push(r)}};
+ hit(/urgente|agora|imediatamente|bloquead|última chance|ultimo aviso/,14,'Há urgência ou pressão para você agir rapidamente.');
+ hit(/senha|token|cvv|cvc|código de segurança|codigo de segurança|código sms|codigo sms/,27,'Há pedido ou menção a credenciais sensíveis.');
+ hit(/pix|transferência|transferencia|depósito|deposito|pague|pagamento/,11,'Existe contexto de pagamento ou transferência.');
+ hit(/taxa para liberar|pague para receber|taxa antecipada|depósito de garantia/,22,'Há cobrança antecipada para liberar dinheiro ou benefício.');
+ hit(/novo número|novo numero|troquei de número|meu celular quebrou/,22,'O texto lembra o golpe do novo número.');
+ hit(/lucro garantido|retorno garantido|dobrar seu dinheiro|sem risco|renda garantida/,25,'Há promessa financeira incompatível com risco real.');
+ hit(/clique aqui|acesse o link|confirme seus dados|atualize seus dados/,12,'Há chamada para clicar ou fornecer dados.');
+ if(type==='url'){try{const u=new URL(/^https?:/i.test(raw)?raw:'https://'+raw);if(u.protocol!=='https:'){score+=12;reasons.push('O endereço não usa HTTPS.')}if(u.hostname.includes('xn--')){score+=14;reasons.push('O domínio usa punycode e merece conferência manual.')}if(/bit\.ly|tinyurl|cutt\.ly|is\.gd|rb\.gy/i.test(u.hostname)){score+=14;reasons.push('O endereço usa encurtador de links.')}}catch(e){score+=30;reasons.push('A URL parece inválida.')}}
+ if(type==='pix'&&raw.startsWith('000201')&&!pixCrcValid(raw.trim())){score+=24;reasons.push('O CRC do PIX Copia e Cola não confere.')}
+ score=Math.max(0,Math.min(100,score));if(!reasons.length)reasons.push('Nenhum sinal clássico forte foi encontrado no modo local.');if(score>=35)recommendations.push('Não faça pagamentos antes de confirmar a origem.');
+ const riskLevel=score>=80?'critical':score>=60?'high':score>=35?'moderate':score>=15?'low':'very_low';return{ok:true,riskScore:score,safeScore:100-score,riskLevel,summary:{critical:'Risco muito alto. Não pague nem compartilhe dados.',high:'Vários sinais típicos de golpe foram encontrados.',moderate:'Há sinais relevantes de risco; confirme antes de agir.',low:'Há alguns pontos de atenção.',very_low:'Poucos sinais clássicos foram encontrados.'}[riskLevel],reasons,recommendations,signals:{fallback:true}}}
+function pixCrcValid(s){const i=s.lastIndexOf('6304');if(i<0||i+8>s.length)return false;return crc16(s.slice(0,i+4))===s.slice(i+4,i+8).toUpperCase()}
+function crc16(s){let crc=0xffff;for(let i=0;i<s.length;i++){crc^=s.charCodeAt(i)<<8;for(let j=0;j<8;j++)crc=(crc&0x8000)?((crc<<1)^0x1021)&0xffff:(crc<<1)&0xffff}return crc.toString(16).toUpperCase().padStart(4,'0')}
+
+function riskMeta(level){return{very_low:['Muito baixo','#25945f'],low:['Baixo','#25945f'],moderate:['Moderado','#d89a28'],high:['Alto','#d46b2d'],critical:['Crítico','#cb4236']}[level]||['Indefinido','#61767a']}
+function renderResult(r){
+ const [label,color]=riskMeta(r.riskLevel);const server=r.mode==='server';
+ $('content').innerHTML=`<div class="page"><div class="row between"><div><h2 style="margin-bottom:4px">Resultado da análise</h2><div class="mini muted">${server?'Salvo no seu histórico em nuvem':'Resultado local temporário'}</div></div><span class="server-badge ${server?'':'local'}">${server?'● SERVIDOR':'● FALLBACK LOCAL'}</span></div>
+ <div class="card" style="margin-top:14px"><div class="result-head"><div class="gauge" style="--score:${Number(r.riskScore)||0};--g:${color}"><div class="inside">${Number(r.riskScore)||0}<small>RISCO %</small></div></div><div><div class="risk-title" style="color:${color}">Risco ${label}</div><div class="risk-sub">${esc(r.summary)}</div><span class="score-safe">Safe Score: ${Number(r.safeScore)||0}/100</span></div></div></div>
+ <div class="card"><h3>Por que isso chamou atenção?</h3><ul class="list">${(r.reasons||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+ <div class="card"><h3>O que fazer agora</h3><ul class="list">${(r.recommendations||[]).map(x=>`<li>${esc(x)}</li>`).join('')}</ul></div>
+ ${server&&r.analysisId?`<div class="card mini muted">ID da análise: ${esc(r.analysisId)}<br>Motor: SafeCheck Server 2.0</div>`:''}
+ ${!server?`<div class="notice info">A API não respondeu. Esta avaliação foi feita pelo motor local e não foi gravada no banco. Motivo: ${esc(r.error||'indisponibilidade de rede')}.</div>`:''}
+ <div class="form-actions"><button class="btn btn-soft" onclick="shareLast()">Compartilhar</button><button class="btn btn-primary" onclick="openAnalyze('${esc(r.type||'message')}')">Nova análise</button></div></div>`;
+}
+function shareLast(){if(!lastReport)return;const r=lastReport,[label]=riskMeta(r.riskLevel);const text=`Detector de Golpes – SafeCheck AI\nRisco: ${r.riskScore}% (${label})\nSafe Score: ${r.safeScore}/100\n\n${r.summary}\n\nSinais:\n- ${(r.reasons||[]).join('\n- ')}\n\nRecomendações:\n- ${(r.recommendations||[]).join('\n- ')}\n\nAvaliação de risco; confirme sempre por canal oficial.`;if(window.SafeCheckNative?.share)SafeCheckNative.share(text);else navigator.share?.({text}).catch(()=>{})}
+
+async function renderHistory(){
+ $('content').innerHTML=`<div class="page"><div class="row between"><div><h2 style="margin-bottom:4px">Histórico</h2><div class="muted mini">Somente análises da sua conta</div></div><button class="link-btn" onclick="renderHistory()">Atualizar</button></div><div id="historyList" class="card empty" style="margin-top:14px">Carregando…</div></div>`;
+ const s=await ensureSession();if(!s){logout();return}
+ try{
+   const data=await jsonFetch(SUPABASE_URL+'/rest/v1/safecheck_analyses?select=id,input_type,input_preview,score,risk_level,summary,reasons,recommendations,source_file_name,created_at&order=created_at.desc&limit=100',{headers:authHeaders(s.access_token)});
+   const el=$('historyList');if(!el)return;if(!Array.isArray(data)||!data.length){el.className='card empty';el.innerHTML='Nenhuma análise salva ainda.<br><span class="mini">Faça sua primeira verificação na aba Início.</span>';return}
+   el.className='';el.innerHTML=data.map(historyCard).join('');
+ }catch(e){const el=$('historyList');if(el)el.innerHTML=`<div class="notice error">${esc(friendlyError(e))}</div>`}
+}
+function historyCard(x){const [label]=riskMeta(x.risk_level);const date=new Date(x.created_at).toLocaleString('pt-BR');return `<article class="card history-card"><div class="history-top"><div><div class="chip">${esc(typeLabel(x.input_type))}</div><h3 style="margin:9px 0 5px">${Number(x.score)}% de risco</h3></div><span class="risk-pill risk-${esc(x.risk_level)}">${label}</span></div><p class="preview">${esc(x.input_preview||x.source_file_name||'Sem prévia')}</p><p class="mini muted">${esc(x.summary)}</p><div class="row between"><span class="date">${esc(date)}</span><button class="link-btn danger-text" onclick="deleteAnalysis('${esc(x.id)}')">Excluir</button></div></article>`}
+function typeLabel(t){return({message:'Mensagem',url:'Link/site',pix:'PIX',offer:'Oferta',profile:'Perfil',image:'Imagem',pdf:'PDF',other:'Outro'}[t]||t||'Análise')}
+async function deleteAnalysis(id){if(!confirm('Excluir esta análise do histórico?'))return;const s=await ensureSession();if(!s)return logout();try{await fetch(SUPABASE_URL+'/rest/v1/safecheck_analyses?id=eq.'+encodeURIComponent(id),{method:'DELETE',headers:{...authHeaders(s.access_token),'Prefer':'return=minimal'}});toast('Análise excluída.');renderHistory()}catch(e){toast('Não foi possível excluir.')}}
+
+function renderLearn(){
+ const items=[
+ ['Golpe do novo número','Desconfie quando alguém diz que trocou de número e logo pede PIX. Ligue para o número antigo ou confirme com outra pessoa próxima.'],
+ ['Falsa central bancária','Bancos não pedem senha, token, código SMS ou transferência para “conta segura”. Encerre a ligação e abra o app oficial.'],
+ ['Phishing por link','Não confie no texto visível. Confira o domínio completo e prefira digitar o endereço oficial. Links encurtados escondem o destino.'],
+ ['Golpe do PIX','Antes de confirmar, confira no aplicativo do banco o nome e CPF/CNPJ do beneficiário. Um PIX estruturalmente válido ainda pode pertencer a golpista.'],
+ ['Marketplace e vendedor','Evite sair da plataforma para pagar. Desconfie de urgência, preço muito abaixo do mercado e comprovantes enviados apenas por print.'],
+ ['Investimento milagroso','Rentabilidade garantida, “sem risco”, robôs secretos e pressão para aportar rápido são sinais fortes de fraude.'],
+ ['Vaga de emprego','Empresa séria normalmente não cobra taxa, curso obrigatório ou PIX do candidato para liberar contratação.'],
+ ['Se você já pagou','Contate imediatamente o banco e peça contestação/MED quando aplicável, preserve provas, altere senhas comprometidas e registre ocorrência.']
+ ];
+ $('content').innerHTML=`<div class="page"><h2>Central Anti-Golpe</h2><p class="muted">Orientações práticas para reconhecer e interromper fraudes digitais.</p><div class="learn">${items.map(x=>`<div class="card"><h3>${esc(x[0])}</h3><p>${esc(x[1])}</p></div>`).join('')}</div><div class="notice info">Na dúvida, use o Detector antes de clicar ou pagar. Para risco imediato, priorize o canal oficial da instituição envolvida.</div></div>`
+}
+async function renderAccount(){
+ const s=await ensureSession();if(!s){logout();return}const email=s.user?.email||'Conta autenticada';const version=window.SafeCheckNative?.appVersion?SafeCheckNative.appVersion():'2.0.0';
+ $('content').innerHTML=`<div class="page"><h2>Conta e segurança</h2><div class="card"><div class="mini muted">Conectado como</div><div class="account-email">${esc(email)}</div></div><div class="card"><div class="status-line"><span>Backend</span><b id="backendText">Verificando…</b></div><div class="status-line"><span>Banco</span><b>Supabase + RLS</b></div><div class="status-line"><span>Autenticação</span><b>E-mail + senha</b></div><div class="status-line"><span>OCR</span><b>No aparelho</b></div><div class="status-line"><span>Versão</span><b>${esc(version)}</b></div></div><div class="card"><h3>Privacidade</h3><p class="muted mini">O servidor recebe texto e metadados necessários à análise. Imagens e PDFs são convertidos em texto no aparelho e o arquivo original não é enviado pela versão 2.0.</p></div><button class="btn btn-danger" onclick="logout()">Sair da conta</button></div>`;
+ const ok=await checkBackend();if($('backendText'))$('backendText').textContent=ok?'Online':'Indisponível';
+}
+
+(async function boot(){session=getStoredSession();if(await ensureSession())enterApp();else{$('auth').classList.remove('hidden');$('app').classList.add('hidden');checkBackend()}})();
+</script>
+</body>
+</html>
