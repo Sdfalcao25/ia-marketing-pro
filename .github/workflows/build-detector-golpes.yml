@@ -43,11 +43,13 @@ jobs:
           node --check app/src/main/assets/auth_patch.js
           node --check app/src/main/assets/ui_patch.js
           node --check app/src/main/assets/risk_patch.js
+          node --check app/src/main/assets/client_patch_230.js
           grep -F "Carlos Alisson Silva Falcão Lins" app/src/main/assets/ui_patch.js
           grep -F "senior-light" app/src/main/assets/ui_patch.js
           grep -F "domain_age_days" app/src/main/assets/risk_patch.js
-          grep -F "caminho da URL menciona banco" app/src/main/assets/risk_patch.js
-          grep -F "pixBait&&linkFollow" app/src/main/assets/risk_patch.js
+          grep -F "upgradeQuickIcons" app/src/main/assets/client_patch_230.js
+          grep -F "hideTechnicalInfrastructure" app/src/main/assets/client_patch_230.js
+          grep -F "IA + análise técnica" app/src/main/assets/client_patch_230.js
 
       - name: Verify Supabase Auth endpoint
         shell: bash
@@ -78,14 +80,21 @@ jobs:
           ls -lh app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/aapt dump badging app/build/outputs/apk/debug/app-debug.apk > /tmp/badging.txt
-          grep "versionName='2.2.0'" /tmp/badging.txt
+          grep "versionName='2.3.0'" /tmp/badging.txt
           grep "application-label:'SafeCheck AI'" /tmp/badging.txt
           grep "application-icon-" /tmp/badging.txt
+
+      - name: Verify bundled customer patch
+        run: |
+          unzip -p app/build/outputs/apk/debug/app-debug.apk assets/client_patch_230.js > /tmp/client_patch_230.js
+          grep -F "upgradeQuickIcons" /tmp/client_patch_230.js
+          grep -F "hideTechnicalInfrastructure" /tmp/client_patch_230.js
+          grep -F "Proteção digital contra golpes" /tmp/client_patch_230.js
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safecheck-ai-2.2.0-url-intelligence-apk
+          name: safecheck-ai-2.3.0-hybrid-ai-professional-ui-apk
           path: detector-golpes-standalone/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
