@@ -1,0 +1,162 @@
+name: Build ANTI GOLPE AI v4 APK
+
+on:
+  push:
+    branches: [anti-golpe-ai]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble source
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat anti-golpe-build/payload/part00a anti-golpe-build/payload/part00b anti-golpe-build/payload/part01 anti-golpe-build/payload/part02 anti-golpe-build/payload/part03 anti-golpe-build/payload/part04 anti-golpe-build/payload/part05 anti-golpe-build/payload/part06 anti-golpe-build/payload/part07 anti-golpe-build/payload/part08 >/tmp/base.b64
+          base64 -d /tmp/base.b64 >/tmp/base.zip
+          echo 'f80c469f23b96435805d53dfd87472d73c04c0cea27700d35463ab690d2b3e2a  /tmp/base.zip' | sha256sum -c -
+          mkdir /tmp/base
+          unzip -q /tmp/base.zip -d /tmp/base
+          cp -a /tmp/base/anti_golpe_ai/. .
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('lib/features/analysis/analysis_form_screen.dart'); p.write_text(p.read_text().replace("'Ex.: R$ 350,00'", "'Ex.: R\\$ 350,00'").replace("'Ex.: R$ 199,00'", "'Ex.: R\\$ 199,00'"))
+          p=Path('lib/features/analysis/local_ai_analysis_service.dart'); p.write_text(p.read_text().replace("final confidence = (55 + evidence).clamp(55, 92);", "final confidence = (55 + evidence).clamp(55, 92).toInt();"))
+          for f in ['lib/features/analysis/result_screen.dart','lib/features/history/history_screen.dart']:
+            p=Path(f); s=p.read_text(); marker="import '../../core/models/analysis.dart';"
+            if "../../core/models/risk_level.dart" not in s: s=s.replace(marker, marker+"\nimport '../../core/models/risk_level.dart';")
+            p.write_text(s)
+          p=Path('lib/features/analysis/result_screen.dart'); p.write_text(p.read_text().replace('const Color(0x223FFFFFF)','const Color(0x223FFFFF)'))
+          p=Path('test/widget_test.dart'); p.write_text(p.read_text().replace("import 'package:flutter/material.dart';\n",''))
+          p=Path('lib/features/account/account_screen.dart'); p.write_text(p.read_text().replace('if(ctx.mounted)ScaffoldMessenger.of(context).showSnackBar','if(ctx.mounted)ScaffoldMessenger.of(ctx).showSnackBar'))
+          PY
+
+          cat anti-golpe-build/v2patch/part00 anti-golpe-build/v2patch/part01 anti-golpe-build/v2patch/part02 anti-golpe-build/v2patch/part03 anti-golpe-build/v2patch/part04 >/tmp/v2.b64
+          base64 -d /tmp/v2.b64 >/tmp/v2.zip
+          echo '082aa44f51a9855bc329c6947a8cd0d91f9e1213b460db38d9a6997bebd1d39a  /tmp/v2.zip' | sha256sum -c -
+          unzip -t /tmp/v2.zip >/dev/null
+          unzip -oq /tmp/v2.zip -d .
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('lib/core/services/site_research_service.dart'); lines=p.read_text().splitlines()
+          for i,line in enumerate(lines):
+            if 'hasPasswordField = RegExp' in line:
+              indent=line[:len(line)-len(line.lstrip())]
+              lines[i]=indent+"hasPasswordField = RegExp(r'''type\\s*=\\s*['\"]password['\"]''', caseSensitive: false).hasMatch(body);"
+          p.write_text('\n'.join(lines)+'\n')
+          p=Path('test/widget_test.dart'); p.write_text(p.read_text().replace("expect(find.text('Histórico'), findsNothing);","expect(find.text('Histórico'), findsOneWidget);"))
+          PY
+
+          echo 'd8f9249b3e31f8eee733c7e9b5c19f8f99dfa069a4b69af8f839989d019fa255  anti-golpe-build/v3fixed/part00' | sha256sum -c -
+          echo 'e366149d4d3789581693d540718577817d9a0ee069fc38ffedf189e614e04a89  anti-golpe-build/v3fixed/part01' | sha256sum -c -
+          echo '0e1d36ff1818f9ae17227b8a466ff5140110df0677a6a8a9e41adf385d0bbd86  anti-golpe-build/v3fixed/part02' | sha256sum -c -
+          echo 'ce632652dbc9b0abdc371adfdfcf36adcf391d404c85cfb3856193a58bd57140  anti-golpe-build/v3fixed/part03' | sha256sum -c -
+          echo 'b50eedc7e9344c236c4dfc8163652097cff62cb4a99e62433cba7bb45f478a00  anti-golpe-build/v3fixed/part04' | sha256sum -c -
+          cat anti-golpe-build/v3fixed/part00 anti-golpe-build/v3fixed/part01 anti-golpe-build/v3fixed/part02 anti-golpe-build/v3fixed/part03 anti-golpe-build/v3fixed/part04 >/tmp/v3.b64
+          base64 -d /tmp/v3.b64 >/tmp/v3.zip
+          echo '88ea37d2a95f30433689f4a9f5fefcc00e2a44b76031798aca80b2a4192e78b0  /tmp/v3.zip' | sha256sum -c -
+          unzip -t /tmp/v3.zip >/dev/null
+          unzip -oq /tmp/v3.zip -d .
+          grep -Eq 'devolver|devolva|devolve' lib/features/analysis/local_ai_analysis_service.dart
+          grep -q '^version: 0.3.0+3' pubspec.yaml
+
+          python3 anti-golpe-build/apply_v4.py
+          python3 anti-golpe-build/clean_v4_lints.py
+          grep -q '^version: 0.4.0+4' pubspec.yaml
+          grep -q 'final pixBait' lib/features/analysis/local_ai_analysis_service.dart
+          grep -q 'server_fallback' lib/features/analysis/result_screen.dart
+
+      - name: Verify live backend
+        shell: bash
+        run: |
+          set -euo pipefail
+          BASE='https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api'
+          curl --fail --silent --show-error --retry 4 --retry-delay 4 "$BASE/health" | tee backend-health.json
+          python3 - <<'PY'
+          import json
+          d=json.load(open('backend-health.json'))
+          assert d.get('ok') is True, d
+          assert d.get('compatibility') is True, d
+          print('Backend compatibility endpoint online:', d)
+          PY
+
+      - name: Backend regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request
+          BASE='https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api'
+          cases=[
+            ('legit','message',{'type':'message','fields':{'content':'Olá, segue a confirmação da reunião de amanhã às 14h.','context':'Mensagem de um colega que conheço.'}},0,20),
+            ('pix_unknown_whatsapp','message',{'type':'message','fields':{'content':'Tenho um PIX para lhe enviar. Envie seu WhatsApp e falamos mais.','context':'Não conheço a pessoa.'}},80,100),
+            ('pix_refund_other_key','pix',{'type':'pix','fields':{'context':'Recebi um PIX de uma pessoa desconhecida e ela pediu para devolver para outra chave.'}},90,100),
+            ('recent_domain','site',{'type':'site','fields':{'url':'https://exemplo.test','__siteAgeDays':'3','__siteHttps':'true','context':'Recebi o link por mensagem.'}},80,100),
+          ]
+          out={}
+          for name,kind,payload,lo,hi in cases:
+            req=urllib.request.Request(f'{BASE}/analysis/{kind}',data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(req,timeout=20) as r:
+              body=json.loads(r.read())
+            result=body['result']; score=int(result['riskScore'])
+            assert lo <= score <= hi, (name,score,body)
+            assert result.get('analysisMode') in ('server_fallback','remote_ai'), (name,result)
+            out[name]={'score':score,'level':result.get('level'),'mode':result.get('analysisMode')}
+          open('backend-regression.json','w').write(json.dumps(out,ensure_ascii=False,indent=2))
+          print(json.dumps(out,ensure_ascii=False,indent=2))
+          PY
+
+      - uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Generate Android project
+        run: bash tool/bootstrap_android.sh
+
+      - name: Resolve dependencies
+        run: flutter pub get
+
+      - name: Flutter analyze
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter analyze 2>&1 | tee flutter-analyze.log
+
+      - name: Flutter tests
+        shell: bash
+        run: |
+          set -o pipefail
+          flutter test 2>&1 | tee flutter-test.log
+
+      - name: Build connected APK
+        run: >-
+          flutter build apk --debug
+          --dart-define=API_BASE_URL=https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api
+          --dart-define=SUPABASE_URL=https://pwlblezbjnumlmqevcgu.supabase.co
+          --dart-define=SUPABASE_ANON_KEY=sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv
+
+      - name: Validate and package APK
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -s build/app/outputs/flutter-apk/app-debug.apk
+          file build/app/outputs/flutter-apk/app-debug.apk
+          unzip -t build/app/outputs/flutter-apk/app-debug.apk >/dev/null
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai_v4.apk
+          sha256sum dist/anti_golpe_ai_v4.apk | tee dist/APK_SHA256.txt
+          cp flutter-analyze.log flutter-test.log backend-health.json backend-regression.json dist/
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: anti-golpe-ai-v4-apk
+          path: dist/
+          if-no-files-found: error
+          retention-days: 30
