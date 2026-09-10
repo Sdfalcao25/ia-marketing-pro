@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   build:
@@ -114,3 +114,22 @@ jobs:
           path: detector-golpes-standalone/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
+
+      - name: Prepare public APK download
+        run: cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/SafeCheck-AI-2.4.2.apk"
+
+      - name: Publish public GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          TAG="safecheck-ai-v2.4.2"
+          APK="$GITHUB_WORKSPACE/SafeCheck-AI-2.4.2.apk"
+          if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$TAG" "$APK#SafeCheck-AI-2.4.2.apk" --clobber --repo "$GITHUB_REPOSITORY"
+          else
+            gh release create "$TAG" "$APK#SafeCheck-AI-2.4.2.apk" \
+              --repo "$GITHUB_REPOSITORY" \
+              --target safecheck-cloud-v2 \
+              --title "SafeCheck AI 2.4.2" \
+              --notes "SafeCheck AI 2.4.2 para Android. Versão freemium auditada para testes e instalação direta. O Android pode solicitar autorização para instalar aplicativos de fontes externas."
+          fi
