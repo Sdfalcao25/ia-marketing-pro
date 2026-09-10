@@ -1,0 +1,33 @@
+name: Build LeadProof Android APK
+on:
+  push:
+    branches: [leadproof-premium-mobile]
+    paths:
+      - 'leadproof-mobile/**'
+      - '.github/workflows/leadproof-android-apk.yml'
+  workflow_dispatch:
+jobs:
+  build-apk:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.10.2'
+      - name: Install Android SDK packages
+        run: |
+          yes | sdkmanager --licenses >/dev/null || true
+          sdkmanager 'platforms;android-35' 'build-tools;35.0.0'
+      - name: Build signed debug APK
+        run: gradle -p leadproof-mobile :app:assembleDebug --stacktrace
+      - name: Prepare artifact
+        run: cp leadproof-mobile/app/build/outputs/apk/debug/app-debug.apk LeadProof-VendaReal-Premium.apk
+      - uses: actions/upload-artifact@v4
+        with:
+          name: LeadProof-VendaReal-Premium-APK
+          path: LeadProof-VendaReal-Premium.apk
+          if-no-files-found: error
