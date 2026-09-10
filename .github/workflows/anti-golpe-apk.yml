@@ -1,4 +1,4 @@
-name: Build ANTI GOLPE AI v3 APK
+name: Build ANTI GOLPE AI v4 APK
 
 on:
   push:
@@ -65,22 +65,50 @@ jobs:
           unzip -oq /tmp/v3.zip -d .
           grep -Eq 'devolver|devolva|devolve' lib/features/analysis/local_ai_analysis_service.dart
           grep -q '^version: 0.3.0+3' pubspec.yaml
-          python3 - <<'PY'
-          from pathlib import Path
-          p=Path('lib/features/analysis/result_screen.dart')
-          p.write_text(p.read_text().replace("_ => 'Análise inteligente local',", "_ => 'Motor antifraude local',"))
-          PY
+
+          python3 anti-golpe-build/apply_v4.py
+          grep -q '^version: 0.4.0+4' pubspec.yaml
+          grep -q 'final pixBait' lib/features/analysis/local_ai_analysis_service.dart
+          grep -q 'server_fallback' lib/features/analysis/result_screen.dart
 
       - name: Verify live backend
         shell: bash
         run: |
           set -euo pipefail
-          curl --fail --silent --show-error --retry 4 --retry-delay 4 'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api/health' | tee backend-health.json
+          BASE='https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api'
+          curl --fail --silent --show-error --retry 4 --retry-delay 4 "$BASE/health" | tee backend-health.json
           python3 - <<'PY'
           import json
           d=json.load(open('backend-health.json'))
           assert d.get('ok') is True, d
-          print('Backend online; remote AI configured:', bool(d.get('aiConfigured')))
+          assert d.get('compatibility') is True, d
+          print('Backend compatibility endpoint online:', d)
+          PY
+
+      - name: Backend regression tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import json, urllib.request
+          BASE='https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api'
+          cases=[
+            ('legit','message',{'type':'message','fields':{'content':'Olá, segue a confirmação da reunião de amanhã às 14h.','context':'Mensagem de um colega que conheço.'}},0,20),
+            ('pix_unknown_whatsapp','message',{'type':'message','fields':{'content':'Tenho um PIX para lhe enviar. Envie seu WhatsApp e falamos mais.','context':'Não conheço a pessoa.'}},80,100),
+            ('pix_refund_other_key','pix',{'type':'pix','fields':{'context':'Recebi um PIX de uma pessoa desconhecida e ela pediu para devolver para outra chave.'}},90,100),
+            ('recent_domain','site',{'type':'site','fields':{'url':'https://exemplo.test','__siteAgeDays':'3','__siteHttps':'true','context':'Recebi o link por mensagem.'}},80,100),
+          ]
+          out={}
+          for name,kind,payload,lo,hi in cases:
+            req=urllib.request.Request(f'{BASE}/analysis/{kind}',data=json.dumps(payload,ensure_ascii=False).encode(),headers={'Content-Type':'application/json'},method='POST')
+            with urllib.request.urlopen(req,timeout=20) as r:
+              body=json.loads(r.read())
+            result=body['result']; score=int(result['riskScore'])
+            assert lo <= score <= hi, (name,score,body)
+            assert result.get('analysisMode') in ('server_fallback','remote_ai'), (name,result)
+            out[name]={'score':score,'level':result.get('level'),'mode':result.get('analysisMode')}
+          open('backend-regression.json','w').write(json.dumps(out,ensure_ascii=False,indent=2))
+          print(json.dumps(out,ensure_ascii=False,indent=2))
           PY
 
       - uses: subosito/flutter-action@v2
@@ -121,13 +149,13 @@ jobs:
           file build/app/outputs/flutter-apk/app-debug.apk
           unzip -t build/app/outputs/flutter-apk/app-debug.apk >/dev/null
           mkdir -p dist
-          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai_v3.apk
-          sha256sum dist/anti_golpe_ai_v3.apk | tee dist/APK_SHA256.txt
-          cp flutter-analyze.log flutter-test.log backend-health.json dist/
+          cp build/app/outputs/flutter-apk/app-debug.apk dist/anti_golpe_ai_v4.apk
+          sha256sum dist/anti_golpe_ai_v4.apk | tee dist/APK_SHA256.txt
+          cp flutter-analyze.log flutter-test.log backend-health.json backend-regression.json dist/
 
       - uses: actions/upload-artifact@v4
         with:
-          name: anti-golpe-ai-v3-apk
+          name: anti-golpe-ai-v4-apk
           path: dist/
           if-no-files-found: error
           retention-days: 30
