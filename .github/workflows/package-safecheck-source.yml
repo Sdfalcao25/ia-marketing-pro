@@ -1,0 +1,38 @@
+name: Package SafeCheck Source
+
+on:
+  push:
+    branches:
+      - safecheck-cloud-v2
+    paths:
+      - '.github/workflows/package-safecheck-source.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build source archive
+        run: |
+          mkdir -p SafeCheck-AI-Source
+          cp -R detector-golpes-standalone SafeCheck-AI-Source/
+          cp -R safecheck-backend SafeCheck-AI-Source/
+          cp README.md SafeCheck-AI-Source/README-REPOSITORY.md
+          cp .github/workflows/build-detector-golpes.yml SafeCheck-AI-Source/build-android-workflow.yml
+          find SafeCheck-AI-Source -type d -name build -prune -exec rm -rf {} + || true
+          find SafeCheck-AI-Source -type d -name .gradle -prune -exec rm -rf {} + || true
+          zip -r SafeCheck-AI-Source-Repo.zip SafeCheck-AI-Source
+
+      - name: Upload source artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: safecheck-ai-source-repo
+          path: SafeCheck-AI-Source-Repo.zip
+          if-no-files-found: error
+          retention-days: 14
