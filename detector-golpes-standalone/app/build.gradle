@@ -2,6 +2,12 @@ plugins {
     id 'com.android.application'
 }
 
+def releaseStorePath = System.getenv('SAFE_CHECK_KEYSTORE_PATH')
+def releaseStorePassword = System.getenv('SAFE_CHECK_KEYSTORE_PASSWORD')
+def releaseKeyAlias = System.getenv('SAFE_CHECK_KEY_ALIAS')
+def releaseKeyPassword = System.getenv('SAFE_CHECK_KEY_PASSWORD')
+def hasReleaseSigning = releaseStorePath && releaseStorePassword && releaseKeyAlias && releaseKeyPassword
+
 android {
     namespace 'com.app.detectorgolpeai'
     compileSdk 35
@@ -10,8 +16,19 @@ android {
         applicationId 'com.app.detectorgolpeai'
         minSdk 24
         targetSdk 35
-        versionCode 13
-        versionName '2.4.5'
+        versionCode 14
+        versionName '2.5.0'
+    }
+
+    signingConfigs {
+        release {
+            if (hasReleaseSigning) {
+                storeFile file(releaseStorePath)
+                storePassword releaseStorePassword
+                keyAlias releaseKeyAlias
+                keyPassword releaseKeyPassword
+            }
+        }
     }
 
     buildTypes {
@@ -19,7 +36,11 @@ android {
             minifyEnabled false
         }
         release {
-            minifyEnabled false
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
+            minifyEnabled true
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
