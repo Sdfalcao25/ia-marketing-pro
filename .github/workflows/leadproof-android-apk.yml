@@ -24,6 +24,11 @@ jobs:
           gradle-version: '8.10.2'
       - name: Build debug APK
         run: gradle -p leadproof-mobile :app:assembleDebug --stacktrace
+      - name: Verify APK signature and package
+        run: |
+          APK='leadproof-mobile/app/build/outputs/apk/debug/app-debug.apk'
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/apksigner" verify --verbose --print-certs "$APK"
+          "$ANDROID_SDK_ROOT/build-tools/35.0.0/aapt" dump badging "$APK" | grep -E "^package:|^application-label:|^sdkVersion:|^targetSdkVersion:"
       - name: Prepare artifact
         run: cp leadproof-mobile/app/build/outputs/apk/debug/app-debug.apk LeadProof-VendaReal-Premium.apk
       - uses: actions/upload-artifact@v4
