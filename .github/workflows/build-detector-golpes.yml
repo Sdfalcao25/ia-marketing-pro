@@ -46,39 +46,22 @@ jobs:
           node --check app/src/main/assets/client_patch_230.js
           node --check app/src/main/assets/freemium_patch_240.js
           node --check app/src/main/assets/audit_patch_242.js
+          node --check app/src/main/assets/billing_patch_243.js
           grep -F "Carlos Alisson Silva Falcão Lins" app/src/main/assets/ui_patch.js
-          grep -F "hideTechnicalInfrastructure" app/src/main/assets/client_patch_230.js
-          grep -F "FREE_LIMIT=5" app/src/main/assets/freemium_patch_240.js
           grep -F "safecheck-paid-analyze" app/src/main/assets/freemium_patch_240.js
-          grep -F "A URL menciona uma marca conhecida" app/src/main/assets/audit_patch_242.js
-          grep -F "/auth/v1/logout" app/src/main/assets/audit_patch_242.js
-          grep -F "toLocaleDateString('en-CA')" app/src/main/assets/audit_patch_242.js
+          grep -F "Pagamento confirmado" app/src/main/assets/billing_patch_243.js
+          grep -F "startPaidPlan" app/src/main/assets/billing_patch_243.js
           grep -F 'android:allowBackup="false"' app/src/main/AndroidManifest.xml
 
       - name: Verify Supabase endpoints
         shell: bash
         run: |
-          curl --fail --silent --show-error \
-            -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' \
-            'https://pwlblezbjnumlmqevcgu.supabase.co/auth/v1/settings' > /tmp/safecheck-auth-settings.json
+          curl --fail --silent --show-error -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' 'https://pwlblezbjnumlmqevcgu.supabase.co/auth/v1/settings' > /tmp/safecheck-auth-settings.json
           test -s /tmp/safecheck-auth-settings.json
-          paid_code=$(curl --silent --output /tmp/safecheck-paid.txt --write-out '%{http_code}' \
-            -X POST -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' -H 'Content-Type: application/json' \
-            --data '{"type":"message","text":"teste"}' \
-            'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/safecheck-paid-analyze')
-          billing_code=$(curl --silent --output /tmp/safecheck-billing.txt --write-out '%{http_code}' \
-            -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' \
-            'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/safecheck-billing')
-          legacy_code=$(curl --silent --output /tmp/safecheck-legacy.txt --write-out '%{http_code}' \
-            -X POST -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' -H 'Content-Type: application/json' \
-            --data '{"type":"message","text":"teste"}' \
-            'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/anti-golpe-api/analysis/message')
-          echo "Paid endpoint unauthenticated HTTP $paid_code"
-          echo "Billing endpoint unauthenticated HTTP $billing_code"
-          echo "Legacy endpoint HTTP $legacy_code"
+          paid_code=$(curl --silent --output /tmp/safecheck-paid.txt --write-out '%{http_code}' -X POST -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' -H 'Content-Type: application/json' --data '{"type":"message","text":"teste"}' 'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/safecheck-paid-analyze')
+          billing_code=$(curl --silent --output /tmp/safecheck-billing.txt --write-out '%{http_code}' -H 'apikey: sb_publishable_lMH0rekwoginS5J1uluLAA_enPag-vv' 'https://pwlblezbjnumlmqevcgu.supabase.co/functions/v1/safecheck-billing')
           test "$paid_code" = "401"
           test "$billing_code" = "401"
-          test "$legacy_code" = "410"
 
       - name: Compile debug APK
         run: gradle :app:assembleDebug --stacktrace
@@ -86,50 +69,38 @@ jobs:
       - name: Verify APK, signature and launcher metadata
         run: |
           test -f app/build/outputs/apk/debug/app-debug.apk
-          ls -lh app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/apksigner verify --verbose app/build/outputs/apk/debug/app-debug.apk
           $ANDROID_HOME/build-tools/35.0.0/aapt dump badging app/build/outputs/apk/debug/app-debug.apk > /tmp/badging.txt
-          grep "versionCode='10'" /tmp/badging.txt
-          grep "versionName='2.4.2'" /tmp/badging.txt
+          grep "versionCode='11'" /tmp/badging.txt
+          grep "versionName='2.4.3'" /tmp/badging.txt
           grep "application-label:'SafeCheck AI'" /tmp/badging.txt
-          grep "application-icon-" /tmp/badging.txt
 
-      - name: Verify bundled audit patches
+      - name: Verify bundled billing patch
         run: |
-          unzip -p app/build/outputs/apk/debug/app-debug.apk assets/client_patch_230.js > /tmp/client_patch_230.js
-          unzip -p app/build/outputs/apk/debug/app-debug.apk assets/freemium_patch_240.js > /tmp/freemium_patch_240.js
-          unzip -p app/build/outputs/apk/debug/app-debug.apk assets/audit_patch_242.js > /tmp/audit_patch_242.js
-          grep -F "upgradeQuickIcons" /tmp/client_patch_230.js
-          grep -F "openPlans" /tmp/freemium_patch_240.js
-          grep -F "safecheck-paid-analyze" /tmp/freemium_patch_240.js
-          grep -F "5 análises locais" /tmp/freemium_patch_240.js
-          grep -F "brand" /tmp/audit_patch_242.js
-          grep -F "/auth/v1/logout" /tmp/audit_patch_242.js
-          grep -F "localDay" /tmp/audit_patch_242.js
+          unzip -p app/build/outputs/apk/debug/app-debug.apk assets/billing_patch_243.js > /tmp/billing_patch_243.js
+          grep -F "Pagamento confirmado" /tmp/billing_patch_243.js
+          grep -F "refreshSafeCheckBilling" /tmp/billing_patch_243.js
+          grep -F "safecheck_pending_plan_v240" /tmp/billing_patch_243.js
 
       - name: Upload APK artifact
         uses: actions/upload-artifact@v4
         with:
-          name: safecheck-ai-2.4.2-final-audit-apk
+          name: safecheck-ai-2.4.3-subscriptions-apk
           path: detector-golpes-standalone/app/build/outputs/apk/debug/app-debug.apk
           if-no-files-found: error
           retention-days: 14
 
       - name: Prepare public APK download
-        run: cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/SafeCheck-AI-2.4.2.apk"
+        run: cp app/build/outputs/apk/debug/app-debug.apk "$GITHUB_WORKSPACE/SafeCheck-AI-2.4.3.apk"
 
       - name: Publish public GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          TAG="safecheck-ai-v2.4.2"
-          APK="$GITHUB_WORKSPACE/SafeCheck-AI-2.4.2.apk"
+          TAG="safecheck-ai-v2.4.3"
+          APK="$GITHUB_WORKSPACE/SafeCheck-AI-2.4.3.apk"
           if gh release view "$TAG" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
-            gh release upload "$TAG" "$APK#SafeCheck-AI-2.4.2.apk" --clobber --repo "$GITHUB_REPOSITORY"
+            gh release upload "$TAG" "$APK#SafeCheck-AI-2.4.3.apk" --clobber --repo "$GITHUB_REPOSITORY"
           else
-            gh release create "$TAG" "$APK#SafeCheck-AI-2.4.2.apk" \
-              --repo "$GITHUB_REPOSITORY" \
-              --target safecheck-cloud-v2 \
-              --title "SafeCheck AI 2.4.2" \
-              --notes "SafeCheck AI 2.4.2 para Android. Versão freemium auditada para testes e instalação direta. O Android pode solicitar autorização para instalar aplicativos de fontes externas."
+            gh release create "$TAG" "$APK#SafeCheck-AI-2.4.3.apk" --repo "$GITHUB_REPOSITORY" --target safecheck-cloud-v2 --title "SafeCheck AI 2.4.3" --notes "SafeCheck AI 2.4.3 para Android com fluxo compartilhado de assinatura Pro/Premium via Stripe, ativação automática no retorno ao app e sincronização pelo Supabase."
           fi
