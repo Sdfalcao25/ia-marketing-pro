@@ -1,0 +1,116 @@
+name: SafeCheck Flutter Build
+
+on:
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '17'
+      - uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.47.2'
+          channel: stable
+          cache: true
+      - name: Reconstruct SafeCheck Flutter source
+        shell: bash
+        run: |
+          cat .safecheck-ci/flutter-part-* | tr -d '\n\r ' | base64 -d > /tmp/safecheck_flutter.zip
+          unzip -t /tmp/safecheck_flutter.zip
+          rm -rf /tmp/safecheck_flutter
+          mkdir -p /tmp/safecheck_flutter
+          unzip -q /tmp/safecheck_flutter.zip -d /tmp/safecheck_flutter
+          test -f /tmp/safecheck_flutter/flutter_app/pubspec.yaml
+          sha256sum /tmp/safecheck_flutter.zip
+      - name: Apply reviewed source corrections
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          root=Path('/tmp/safecheck_flutter/flutter_app')
+          p=root/'lib/src/screens/history_screen.dart'
+          s=p.read_text()
+          s=s.replace("return const ListView(children: [SizedBox(height: 260), Center(child: CircularProgressIndicator())]);","return ListView(children: const [SizedBox(height: 260), Center(child: CircularProgressIndicator())]);")
+          s=s.replace("  void _reload() => setState(() => _future = widget.api.history());", "  void _reload() => setState(() {\n        _future = widget.api.history();\n      });")
+          p.write_text(s)
+          p=root/'test/auth_test.dart'
+          s=p.read_text()
+          if "package:flutter/material.dart" not in s:
+              s="import 'package:flutter/material.dart';\n"+s
+          p.write_text(s)
+          p=root/'test/result_test.dart'
+          s=p.read_text()
+          old="    expect(find.text('WHAT WE COULD NOT VERIFY'), findsOneWidget);\n    expect(find.text('Domain age could not be confirmed.'), findsOneWidget);"
+          new="    await tester.scrollUntilVisible(\n      find.text('WHAT WE COULD NOT VERIFY'),\n      300,\n      scrollable: find.byType(Scrollable).first,\n    );\n    expect(find.text('WHAT WE COULD NOT VERIFY'), findsOneWidget);\n    expect(find.text('Domain age could not be confirmed.'), findsOneWidget);"
+          s=s.replace(old,new)
+          p.write_text(s)
+          PY
+      - name: Add configurable MVP backend
+        run: python .safecheck-ci/apply_mvp_runtime_config.py
+      - name: Fix blank-screen startup
+        run: python .safecheck-ci/apply_blank_screen_fix.py
+      - name: Fix blank-screen regression assertion
+        run: python .safecheck-ci/fix_blank_screen_test_assertion.py
+      - name: Use public SafeCheck backend
+        run: python .safecheck-ci/apply_public_backend.py
+      - name: Accept Android licenses
+        run: yes | flutter doctor --android-licenses || true
+      - name: Flutter doctor
+        run: flutter doctor -v
+      - name: Pub get
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter pub get
+      - name: Analyze
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter analyze
+      - name: Tests
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter test
+      - name: Create Android and web scaffold
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: |
+          flutter create --platforms=android,web --org ai.safecheck --project-name safecheck_ai .
+          rm -f test/widget_test.dart
+      - name: Re-run analyze after scaffold
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter analyze
+      - name: Re-run tests after scaffold
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter test
+      - name: Build APK
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter build apk --debug --dart-define=API_BASE_URL=https://safecheck-ai-ytshny.v2.appdeploy.ai
+      - name: Build web
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: flutter build web --dart-define=API_BASE_URL=https://safecheck-ai-ytshny.v2.appdeploy.ai
+      - name: Package and hash artifacts
+        working-directory: /tmp/safecheck_flutter/flutter_app
+        run: |
+          sha256sum build/app/outputs/flutter-apk/app-debug.apk | tee build/app-debug.sha256
+          tar -czf build/web-build.tar.gz -C build web
+          sha256sum build/web-build.tar.gz | tee build/web-build.sha256
+          tar --exclude='./build' --exclude='./.dart_tool' -czf build/flutter-source-with-platforms.tar.gz .
+          sha256sum build/flutter-source-with-platforms.tar.gz | tee build/flutter-source.sha256
+          cp pubspec.lock build/pubspec.lock
+      - uses: actions/upload-artifact@v4
+        with:
+          name: safecheck-flutter-public-backend
+          path: |
+            /tmp/safecheck_flutter/flutter_app/build/app/outputs/flutter-apk/app-debug.apk
+            /tmp/safecheck_flutter/flutter_app/build/app-debug.sha256
+            /tmp/safecheck_flutter/flutter_app/build/web-build.tar.gz
+            /tmp/safecheck_flutter/flutter_app/build/web-build.sha256
+            /tmp/safecheck_flutter/flutter_app/build/flutter-source-with-platforms.tar.gz
+            /tmp/safecheck_flutter/flutter_app/build/flutter-source.sha256
+            /tmp/safecheck_flutter/flutter_app/build/pubspec.lock
+          if-no-files-found: error
