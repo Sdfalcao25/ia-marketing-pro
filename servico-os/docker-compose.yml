@@ -1,0 +1,33 @@
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: servicoos
+      POSTGRES_USER: servicoos
+      POSTGRES_PASSWORD: servicoos
+    ports:
+      - "5432:5432"
+    volumes:
+      - servicoos_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U servicoos -d servicoos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  app:
+    build: .
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://servicoos:servicoos@db:5432/servicoos
+      APP_URL: http://localhost:3000
+      SESSION_TTL_DAYS: 14
+    ports:
+      - "3000:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  servicoos_db:
