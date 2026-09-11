@@ -2,9 +2,6 @@ name: Release SafeCheck AI 2.5
 
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - safecheck-2.5-hardening
 
 permissions:
   contents: write
@@ -16,17 +13,16 @@ jobs:
       run:
         working-directory: detector-golpes-standalone
     env:
-      RAW_SAFE_CHECK_KEYSTORE_BASE64: ${{ secrets.SAFE_CHECK_KEYSTORE_BASE64 }}
-      RAW_SAFE_CHECK_KEYSTORE_PASSWORD: ${{ secrets.SAFE_CHECK_KEYSTORE_PASSWORD }}
-      RAW_SAFE_CHECK_KEY_ALIAS: ${{ secrets.SAFE_CHECK_KEY_ALIAS }}
-      RAW_SAFE_CHECK_KEY_PASSWORD: ${{ secrets.SAFE_CHECK_KEY_PASSWORD }}
+      SAFE_CHECK_KEYSTORE_PASSWORD: ${{ secrets.SAFE_CHECK_KEYSTORE_PASSWORD }}
+      SAFE_CHECK_KEY_ALIAS: ${{ secrets.SAFE_CHECK_KEY_ALIAS }}
+      SAFE_CHECK_KEY_PASSWORD: ${{ secrets.SAFE_CHECK_KEY_PASSWORD }}
 
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Set up Java 17
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -44,37 +40,9 @@ jobs:
         with:
           gradle-version: '8.9'
 
-      - name: Normalize signing secrets
-        run: |
-          normalize_scalar() {
-            local value="$1"
-            local name="$2"
-            value="${value//$'\r'/}"
-            value="${value//$'\n'/}"
-            value="${value#${name}=}"
-            value="${value#\"}"
-            value="${value%\"}"
-            printf '%s' "$value"
-          }
-
-          KEYSTORE_BASE64="$(normalize_scalar "$RAW_SAFE_CHECK_KEYSTORE_BASE64" 'SAFE_CHECK_KEYSTORE_BASE64' | tr -d '[:space:]')"
-          KEYSTORE_PASSWORD="$(normalize_scalar "$RAW_SAFE_CHECK_KEYSTORE_PASSWORD" 'SAFE_CHECK_KEYSTORE_PASSWORD')"
-          KEY_ALIAS="$(normalize_scalar "$RAW_SAFE_CHECK_KEY_ALIAS" 'SAFE_CHECK_KEY_ALIAS')"
-          KEY_PASSWORD="$(normalize_scalar "$RAW_SAFE_CHECK_KEY_PASSWORD" 'SAFE_CHECK_KEY_PASSWORD')"
-
-          test -n "$KEYSTORE_BASE64"
-          test -n "$KEYSTORE_PASSWORD"
-          test -n "$KEY_ALIAS"
-          test -n "$KEY_PASSWORD"
-
-          {
-            printf 'SAFE_CHECK_KEYSTORE_BASE64=%s\n' "$KEYSTORE_BASE64"
-            printf 'SAFE_CHECK_KEYSTORE_PASSWORD=%s\n' "$KEYSTORE_PASSWORD"
-            printf 'SAFE_CHECK_KEY_ALIAS=%s\n' "$KEY_ALIAS"
-            printf 'SAFE_CHECK_KEY_PASSWORD=%s\n' "$KEY_PASSWORD"
-          } >> "$GITHUB_ENV"
-
       - name: Validate signing secrets
+        env:
+          SAFE_CHECK_KEYSTORE_BASE64: ${{ secrets.SAFE_CHECK_KEYSTORE_BASE64 }}
         run: |
           test -n "$SAFE_CHECK_KEYSTORE_BASE64"
           test -n "$SAFE_CHECK_KEYSTORE_PASSWORD"
@@ -82,6 +50,8 @@ jobs:
           test -n "$SAFE_CHECK_KEY_PASSWORD"
 
       - name: Restore production keystore
+        env:
+          SAFE_CHECK_KEYSTORE_BASE64: ${{ secrets.SAFE_CHECK_KEYSTORE_BASE64 }}
         run: |
           printf '%s' "$SAFE_CHECK_KEYSTORE_BASE64" | base64 --decode > "$RUNNER_TEMP/safecheck-release.jks"
           chmod 600 "$RUNNER_TEMP/safecheck-release.jks"
