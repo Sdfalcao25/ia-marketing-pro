@@ -2,6 +2,9 @@ name: Release SafeCheck AI 2.5
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - safecheck-2.5-hardening
 
 permissions:
   contents: write
