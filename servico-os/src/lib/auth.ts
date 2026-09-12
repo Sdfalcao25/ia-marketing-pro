@@ -1,4 +1,3 @@
-import 'server-only';
 import { createHash, randomBytes, scryptSync, timingSafeEqual } from 'node:crypto';
 import { cookies } from 'next/headers';
 import { query } from '@/lib/db';
