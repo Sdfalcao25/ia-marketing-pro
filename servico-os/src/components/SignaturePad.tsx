@@ -1,0 +1,14 @@
+'use client';
+import { useEffect, useRef, useState } from 'react';
+
+export function SignaturePad({token,workOrderId}:{token:string;workOrderId:string}) {
+  const canvasRef=useRef<HTMLCanvasElement|null>(null); const drawing=useRef(false); const [name,setName]=useState(''); const [document,setDocument]=useState(''); const [status,setStatus]=useState('');
+  useEffect(()=>{const canvas=canvasRef.current;if(!canvas)return;const ctx=canvas.getContext('2d');if(!ctx)return;ctx.lineWidth=2;ctx.lineCap='round';ctx.strokeStyle='#172033';},[]);
+  function point(e:React.PointerEvent<HTMLCanvasElement>){const canvas=e.currentTarget;const r=canvas.getBoundingClientRect();return {x:(e.clientX-r.left)*(canvas.width/r.width),y:(e.clientY-r.top)*(canvas.height/r.height)}}
+  function down(e:React.PointerEvent<HTMLCanvasElement>){drawing.current=true;const ctx=e.currentTarget.getContext('2d');const p=point(e);ctx?.beginPath();ctx?.moveTo(p.x,p.y);e.currentTarget.setPointerCapture(e.pointerId)}
+  function move(e:React.PointerEvent<HTMLCanvasElement>){if(!drawing.current)return;const ctx=e.currentTarget.getContext('2d');const p=point(e);ctx?.lineTo(p.x,p.y);ctx?.stroke()}
+  function up(){drawing.current=false}
+  function clear(){const c=canvasRef.current;c?.getContext('2d')?.clearRect(0,0,c.width,c.height);setStatus('')}
+  async function submit(){const c=canvasRef.current;if(!c||!name.trim()){setStatus('Informe o nome do assinante.');return}setStatus('Enviando…');const res=await fetch(`/api/portal/${token}/signature`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({workOrderId,signerName:name,signerDocument:document,signatureData:c.toDataURL('image/png')})});if(res.ok){setStatus('Assinatura registrada.');setTimeout(()=>location.reload(),700)}else{const data=await res.json().catch(()=>({}));setStatus(data.error==='already_signed'?'Esta OS já foi assinada.':'Não foi possível registrar a assinatura.')}}
+  return <div className="signature-box"><div className="field"><label>Nome do assinante</label><input className="input" value={name} onChange={e=>setName(e.target.value)} /></div><div className="field"><label>CPF/CNPJ (opcional)</label><input className="input" value={document} onChange={e=>setDocument(e.target.value)} /></div><canvas ref={canvasRef} width={700} height={220} className="signature-canvas" onPointerDown={down} onPointerMove={move} onPointerUp={up} onPointerCancel={up}/><p className="muted" style={{fontSize:12}}>Ao assinar, você declara que conferiu o serviço executado e concorda com o registro eletrônico.</p><div className="actions" style={{marginTop:10}}><button type="button" className="btn secondary" onClick={clear}>Limpar</button><button type="button" className="btn" onClick={submit}>Assinar OS</button></div>{status&&<p className="muted">{status}</p>}</div>
+}
