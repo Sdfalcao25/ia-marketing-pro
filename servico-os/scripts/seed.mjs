@@ -50,7 +50,7 @@ try {
 
   await client.query(`
     INSERT INTO service_catalog(organization_id, name, sku, unit, default_price)
-    VALUES ($1, 'Visita técnica', 'VISITA', 'UN', 150), ($1, 'Hora técnica', 'HORA', 120)
+    VALUES ($1, 'Visita técnica', 'VISITA', 'UN', 150), ($1, 'Hora técnica', 'HORA', 'H', 120)
     ON CONFLICT (organization_id, sku) DO NOTHING
   `, [org.rows[0].id]);
 
