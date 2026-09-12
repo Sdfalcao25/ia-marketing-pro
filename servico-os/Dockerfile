@@ -1,7 +1,7 @@
 FROM node:24-alpine AS deps
 WORKDIR /app
 COPY package*.json ./
-RUN npm ci
+RUN npm install --no-audit --no-fund
 
 FROM node:24-alpine AS builder
 WORKDIR /app
@@ -21,4 +21,4 @@ COPY --from=builder /app/public ./public
 COPY --from=builder /app/db ./db
 COPY --from=builder /app/scripts ./scripts
 EXPOSE 3000
-CMD ["npm", "start"]
+CMD ["sh", "-c", "node scripts/migrate.mjs && npm start"]
