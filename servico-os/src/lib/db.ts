@@ -1,8 +1,6 @@
-import 'server-only';
-import pg, { type PoolClient, type QueryResultRow } from 'pg';
+import { Pool, type PoolClient, type QueryResultRow } from 'pg';
 
-const { Pool } = pg;
-const globalForDb = globalThis as unknown as { servicoOsPool?: pg.Pool };
+const globalForDb = globalThis as unknown as { servicoOsPool?: Pool };
 
 export const pool = globalForDb.servicoOsPool ?? new Pool({
   connectionString: process.env.DATABASE_URL,
