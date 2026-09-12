@@ -22,7 +22,8 @@ await client.connect();
 try {
   await client.query('BEGIN');
   const org = await client.query(`
-    INSERT INTO organizations(name, slug) VALUES ($1, $2)
+    INSERT INTO organizations(name, slug, trial_ends_at)
+    VALUES ($1, $2, now() + interval '30 days')
     ON CONFLICT (slug) DO UPDATE SET name = EXCLUDED.name
     RETURNING id
   `, [orgName, orgSlug]);
@@ -41,12 +42,15 @@ try {
 
   await client.query(`
     INSERT INTO customers(organization_id, name, email, phone, city, state)
-    VALUES ($1, 'Cliente Demonstração', 'cliente@demo.local', '(51) 99999-0000', 'Porto Alegre', 'RS')
+    SELECT $1, 'Cliente Demonstração', 'cliente@demo.local', '(51) 99999-0000', 'Porto Alegre', 'RS'
+    WHERE NOT EXISTS (
+      SELECT 1 FROM customers WHERE organization_id=$1 AND email='cliente@demo.local'
+    )
   `, [org.rows[0].id]);
 
   await client.query(`
     INSERT INTO service_catalog(organization_id, name, sku, unit, default_price)
-    VALUES ($1, 'Visita técnica', 'VISITA', 'UN', 150), ($1, 'Hora técnica', 'HORA', 'H', 120)
+    VALUES ($1, 'Visita técnica', 'VISITA', 'UN', 150), ($1, 'Hora técnica', 'HORA', 120)
     ON CONFLICT (organization_id, sku) DO NOTHING
   `, [org.rows[0].id]);
 
